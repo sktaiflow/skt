@@ -96,3 +96,8 @@ def parquet_to_pandas(hdfs_path):
     df = parquet.read_table(hdfs_path, filesystem=hdfs).to_pandas()
     df.info()
     return df
+
+
+def pandas_to_parquet(pandas_df, hdfs_path, spark):
+    df = spark.createDataFrame(pandas_df)
+    df.write.mode('overwrite').parquet(hdfs_path)
