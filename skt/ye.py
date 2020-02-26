@@ -11,6 +11,14 @@ def get_hive_conn():
     return conn
 
 
+def get_hdfs_conn():
+    import os
+    import pyarrow
+    os.environ['ARROW_LIBHDFS_DIR'] = '/usr/hdp/3.0.1.0-187/usr/lib'
+    conn = pyarrow.hdfs.connect(user='airflow')
+    return conn
+
+
 def hive_execute(query):
     conn = get_hive_conn()
     c = conn.cursor()
@@ -48,3 +56,11 @@ def hive_to_pandas(query):
         print(message)
     c.close()
     conn.close()
+
+
+def parquet_to_pandas(hdfs_path):
+    from pyarrow import parquet
+    hdfs = get_hdfs_conn()
+    df = parquet.read_table(hdfs_path, filesystem=hdfs).to_pandas()
+    df.info()
+    return df
