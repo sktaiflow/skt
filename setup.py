@@ -16,5 +16,6 @@ setuptools.setup(
     python_requires='>=3.6',
     install_requires=[
         'hvac>=0.9.6',
+        'pyhive[hive]',
     ],
 )
