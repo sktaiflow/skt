@@ -19,6 +19,36 @@ def get_hdfs_conn():
     return conn
 
 
+def get_spark(scale=0):
+    import os
+    from pyspark.sql import SparkSession
+    os.environ['ARROW_PRE_0_15_IPC_FORMAT'] = '1'
+    if scale in [1, 2, 3, 4]:
+        spark = SparkSession \
+            .builder \
+            .config('spark.driver.memory', f'{scale*8}g') \
+            .config('spark.executor.memory', f'{scale*2}g') \
+            .config('spark.executor.number', f'{scale*8}g') \
+            .config('spark.driver.maxResultSize', f'{scale*4}g') \
+            .config('spark.rpc.message.maxSize', '1024') \
+            .config('spark.yarn.queue', 'airflow_job') \
+            .enableHiveSupport() \
+            .getOrCreate()
+    else:
+        spark = SparkSession \
+            .builder \
+            .config('spark.driver.memory', '4g') \
+            .config('spark.executor.memory', '4g') \
+            .config('spark.shuffle.service.enabled', 'true') \
+            .config('spark.dynamicAllocation.enabled', 'true') \
+            .config('spark.dynamicAllocation.maxExecutors', '200') \
+            .config('spark.yarn.queue', 'airflow_job') \
+            .enableHiveSupport() \
+            .getOrCreate()
+    spark.conf.set('spark.sql.execution.arrow.enabled', 'true')
+    return spark
+
+
 def hive_execute(query):
     conn = get_hive_conn()
     c = conn.cursor()
@@ -56,6 +86,8 @@ def hive_to_pandas(query):
         print(message)
     c.close()
     conn.close()
+    table_path = f'/warehouse/tablespace/managed/hive/dumbo.db/{tmp_id}/delta_0000001_0000001_0000'
+    return parquet_to_pandas(table_path)
 
 
 def parquet_to_pandas(hdfs_path):

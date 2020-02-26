@@ -2,7 +2,7 @@ import setuptools
 
 setuptools.setup(
     name="skt",
-    version="0.1.2",
+    version="0.1.3",
     author="SKT",
     author_email="all@sktai.io",
     description="SKT package",
@@ -18,5 +18,6 @@ setuptools.setup(
         'hvac>=0.9.6',
         'pyhive[hive]',
         'pyarrow',
+        'pandas',
     ],
 )
