@@ -2,8 +2,7 @@ name: Publish Python SKT distributions to PyPI
 
 on:
   release:
-    types:
-      - created
+    types: [published]
 
 jobs:
   build-n-publish:
@@ -29,7 +28,6 @@ jobs:
         sdist
         bdist_wheel
     - name: Publish distribution to PyPI
-      if: startsWith(github.event.ref, 'refs/tags')
       uses: pypa/gh-action-pypi-publish@master
       with:
         password: ${{ secrets.pypi_password }}
