@@ -1,4 +1,4 @@
-name: Publish Python SKT distributions to TestPyPI
+name: Publish Python SKT distributions to PyPI
 
 on:
   push:
@@ -28,8 +28,8 @@ jobs:
         setup.py
         sdist
         bdist_wheel
-    - name: Publish distribution to Test PyPI
+    - name: Publish distribution to PyPI
+      if: startsWith(github.event.ref, 'refs/tags')
       uses: pypa/gh-action-pypi-publish@master
       with:
-        password: ${{ secrets.test_pypi_password }}
-        repository_url: https://test.pypi.org/legacy/
+        password: ${{ secrets.pypi_password }}
