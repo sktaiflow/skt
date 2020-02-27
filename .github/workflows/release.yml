@@ -1,9 +1,6 @@
 name: Publish Python SKT distributions to PyPI
 
-on:
-  push:
-    branches:
-      - master
+on: push
 
 jobs:
   build-n-publish:
