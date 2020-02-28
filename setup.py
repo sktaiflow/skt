@@ -14,7 +14,7 @@ air = [
     'lightgbm>=2.3.1',
     'implicit>=0.4.2',
     'tqdm>=4.43.0',
-    'matplotlib>=3.1.3'
+    'matplotlib>=3.1.3',
 ]
 
 setuptools.setup(
