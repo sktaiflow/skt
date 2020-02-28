@@ -13,11 +13,12 @@ air = [
     'xgboost>=1.0.1',
     'lightgbm>=2.3.1',
     'implicit>=0.4.2',
+    'tqdm>=4.43.0',
 ]
 
 setuptools.setup(
     name="skt",
-    version="0.1.8",
+    version="0.1.9",
     author="SKT",
     author_email="all@sktai.io",
     description="SKT package",
@@ -34,6 +35,7 @@ setuptools.setup(
         'pyhive[hive]',
         'pyarrow>=0.16.0',
         'pandas>=1.0.1',
+        'slackclient>=2.5.0',
     ],
     extras_require={
         'air': air,
