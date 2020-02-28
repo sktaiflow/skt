@@ -101,3 +101,34 @@ def parquet_to_pandas(hdfs_path):
 def pandas_to_parquet(pandas_df, hdfs_path, spark):
     df = spark.createDataFrame(pandas_df)
     df.write.mode('overwrite').parquet(hdfs_path)
+
+
+def slack_send(
+        text='This is default text',
+        username='SKT',
+        channel='#leavemealone',
+        icon_emoji=':large_blue_circle:',
+        blocks=None):
+    import asyncio
+    import slack
+    token = get_secrets('slack')['bot_token']['airflow']
+    proxy = get_secrets('proxy')['proxy']
+    if asyncio.get_event_loop().is_running():
+        client = slack.WebClient(token=token, proxy=proxy, run_async=True)
+        task = client.chat_postMessage(
+            username=username,
+            icon_emoji=icon_emoji,
+            channel=channel,
+            blocks=blocks,
+            text=text,
+        )
+        asyncio.ensure_future(task)
+    else:
+        client = slack.WebClient(token=token, proxy=proxy)
+        client.chat_postMessage(
+            username=username,
+            icon_emoji=icon_emoji,
+            channel=channel,
+            blocks=blocks,
+            text=text,
+        )
