@@ -4,8 +4,6 @@ __all__ = ['numeric_eda_plot', 'categorical_eda_plot']
 import logging
 import pandas as pd
 import numpy as np
-import os
-import copy
 import math
 import sys
 
