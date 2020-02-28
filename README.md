@@ -30,7 +30,6 @@
         matplotlib.pyplot object
 
     Example : 
-        df = load_from_hive(conn, "select * from dumbo.aips_eda_samples")
         fig = numeric_eda_plot(df, ['age'], 'answer', cols = 1, n_samples = 10000, plot_type='density', stat_yn=True, figsize = (7,4))
         fig
         
@@ -59,7 +58,6 @@
 
     Example : 
         Example : 
-        df = load_from_hive(conn, "select * from dumbo.aips_eda_samples")
         fig = categorical_eda_plot(df, ['sex_cd'], 'answer', cols = 1, n_samples = 10000, figsize = (7,4))
         fig
         

@@ -14,11 +14,12 @@ air = [
     'lightgbm>=2.3.1',
     'implicit>=0.4.2',
     'tqdm>=4.43.0',
+    'matplotlib>=3.1.3',
 ]
 
 setuptools.setup(
     name="skt",
-    version="0.1.10",
+    version="0.1.11",
     author="SKT",
     author_email="all@sktai.io",
     description="SKT package",
