@@ -1,5 +1,12 @@
 import setuptools
 
+
+def load_long_description():
+    with open("README.md", "r") as f:
+        long_description = f.read()
+    return long_description
+
+
 # Start dependencies group
 air = [
     'bayesian-optimization>=1.1.0',
@@ -23,6 +30,8 @@ setuptools.setup(
     author="SKT",
     author_email="all@sktai.io",
     description="SKT package",
+    long_description=load_long_description(),
+    long_description_content_type="text/markdown",
     url="https://github.com/sktaiflow/skt",
     packages=setuptools.find_packages(),
     classifiers=[
