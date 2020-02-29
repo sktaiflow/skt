@@ -37,6 +37,7 @@ setuptools.setup(
         'pyarrow>=0.16.0',
         'pandas>=1.0.1',
         'slackclient>=2.5.0',
+        'google-cloud-bigquery>=1.24.0',
     ],
     extras_require={
         'air': air,
