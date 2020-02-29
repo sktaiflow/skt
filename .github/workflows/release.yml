@@ -1,4 +1,4 @@
-name: Publish Python SKT distributions to PyPI
+name: release
 
 on:
   release:
