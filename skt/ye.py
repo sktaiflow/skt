@@ -109,26 +109,30 @@ def slack_send(
         channel='#leavemealone',
         icon_emoji=':large_blue_circle:',
         blocks=None):
-    import asyncio
-    import slack
+    import requests
+    from skt.vault_utils import get_secrets
     token = get_secrets('slack')['bot_token']['airflow']
     proxy = get_secrets('proxy')['proxy']
-    if asyncio.get_event_loop().is_running():
-        client = slack.WebClient(token=token, proxy=proxy, run_async=True)
-        task = client.chat_postMessage(
-            username=username,
-            icon_emoji=icon_emoji,
-            channel=channel,
-            blocks=blocks,
-            text=text,
-        )
-        asyncio.ensure_future(task)
-    else:
-        client = slack.WebClient(token=token, proxy=proxy)
-        client.chat_postMessage(
-            username=username,
-            icon_emoji=icon_emoji,
-            channel=channel,
-            blocks=blocks,
-            text=text,
-        )
+    proxies = {
+        'http' : proxy,
+        'https' : proxy,
+    }
+    headers = {
+        'Content-Type': 'application/json;charset=utf-8',
+        'Authorization': f'Bearer {token}',
+    }
+    json_body = {
+        'username': username,
+        'channel': channel,
+        'text': text,
+        'blocks': blocks,
+    }
+    r = requests.post(
+        'https://www.slack.com/api/chat.postMessage',
+        proxies=proxies,
+        headers=headers,
+        json=json_body
+    )
+    r.raise_for_status()
+    if not r.json()['ok']:
+        raise Exception(r.json())

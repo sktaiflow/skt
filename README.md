@@ -9,11 +9,13 @@ Resources are abstracted into package structure.
 
 ## Usage
 
+
 Execute hive query without fetch result
 ```python
 from skt.ye import hive_execute
 hive_execute(ddl_or_ctas_query)
 ```
+
 
 Fetch resultset from hive query
 ```python
@@ -21,17 +23,20 @@ from skt.ye import hive_get_result
 result_set = hive_get_result(select_query)
 ```
 
+
 Get pandas dataframe from hive qeruy resultset
 ```python
 from skt.ye import hive_to_pandas
 pandas_df = hive_to_pandas(hive_query)
 ```
 
+
 Get pandas dataframe from parquet file in hdfs
 ```python
 from skt.ye import parquet_to_pandas
 pandas_df = parquet_to_pandas(hdfs_path)
 ```
+
 
 Save pandas dataframe as parquet in hdfs
 ```python
@@ -42,6 +47,7 @@ pandas_to_parquet(pandas_df, hdfs_path, spark) # we need spark for this operatio
 spark.stop()
 ```
 
+
 Work with spark
 ```python
 from skt.ye import get_spark
@@ -50,6 +56,7 @@ spark = get_spark()
 spark.stop()
 ```
 
+
 Send slack message
 ```python
 from skt.ye import slack_send
@@ -57,6 +64,14 @@ text = 'Hello'
 username = 'airflow'
 channel = '#leavemealone'
 slack_send(text=text, username=username, channel=channel)
+```
+
+
+Get bigquery client
+```python
+from skt.gcp import get_bigquery_client
+bq = get_bigquery_client()
+bq.query(query)
 ```
 
 ## Installation
