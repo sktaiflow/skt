@@ -114,8 +114,8 @@ def slack_send(
     token = get_secrets('slack')['bot_token']['airflow']
     proxy = get_secrets('proxy')['proxy']
     proxies = {
-        'http' : proxy,
-        'https' : proxy,
+        'http': proxy,
+        'https': proxy,
     }
     headers = {
         'Content-Type': 'application/json;charset=utf-8',
