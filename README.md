@@ -79,9 +79,11 @@ Access MLS
 ```python
 from skt.mls import set_model_name
 from skt.mls import get_recent_model_path
+from skt.ye import get_pkl_from_hdfs
 
 set_model_name(COMM_DB, params)
-get_recent_model_path(COMM_DB, model_name)
+path = get_recent_model_path(COMM_DB, model_key)
+model = get_pkl_from_hdfs(f'{path})
 ```
 
 ## Installation
