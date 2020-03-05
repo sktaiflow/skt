@@ -19,6 +19,14 @@ def get_hdfs_conn():
     return conn
 
 
+def get_pkl_from_hdfs(pkl_path):
+    import pickle
+    conn = get_hdfs_conn()
+    byte_object = conn.cat(f'{pkl_path}')
+    pkl_object =  pickle.loads(byte_object)
+    return pkl_object
+
+
 def get_spark(scale=0):
     import os
     from pyspark.sql import SparkSession
@@ -126,6 +134,7 @@ def slack_send(
         'channel': channel,
         'text': text,
         'blocks': blocks,
+        'icon_emoji': icon_emoji,
     }
     r = requests.post(
         'https://www.slack.com/api/chat.postMessage',

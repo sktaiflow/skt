@@ -74,6 +74,16 @@ bq = get_bigquery_client()
 bq.query(query)
 ```
 
+
+Access MLS
+```python
+from skt.mls import set_model_name
+from skt.mls import get_recent_model_path
+
+set_model_name(COMM_DB, params)
+get_recent_model_path(COMM_DB, model_name)
+```
+
 ## Installation
 
 ```sh

@@ -20,13 +20,13 @@ air = [
     'xgboost>=1.0.1',
     'lightgbm>=2.3.1',
     'implicit>=0.4.2',
-    'tqdm>=4.43.0',
+    'tqdm==4.43.0',
     'matplotlib>=3.1.3',
 ]
 
 setuptools.setup(
     name="skt",
-    version="0.1.14",
+    version="0.1.15",
     author="SKT",
     author_email="all@sktai.io",
     description="SKT package",
@@ -47,6 +47,7 @@ setuptools.setup(
         'pandas>=1.0.1',
         'slackclient>=2.5.0',
         'google-cloud-bigquery>=1.24.0',
+        'httplib2==0.17.0',
     ],
     extras_require={
         'air': air,
