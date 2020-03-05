@@ -126,6 +126,7 @@ def slack_send(
         'channel': channel,
         'text': text,
         'blocks': blocks,
+        'icon_emoji': icon_emoji,
     }
     r = requests.post(
         'https://www.slack.com/api/chat.postMessage',
