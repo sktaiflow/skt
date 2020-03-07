@@ -26,7 +26,7 @@ air = [
 
 setuptools.setup(
     name="skt",
-    version="0.1.18",
+    version="0.1.19",
     author="SKT",
     author_email="all@sktai.io",
     description="SKT package",
@@ -41,8 +41,7 @@ setuptools.setup(
     ],
     python_requires='>=3.6',
     install_requires=[
-        'JPype1==0.6.3',
-        'Jaydebeapi==1.1.1',
+        'thrift-sasl==0.3.0',
         'hvac>=0.9.6',
         'pyhive[hive]',
         'pyarrow>=0.16.0',
