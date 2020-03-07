@@ -41,6 +41,8 @@ setuptools.setup(
     ],
     python_requires='>=3.6',
     install_requires=[
+        'JPype1==0.6.3'
+        'Jaydebeapi==1.1.1',
         'hvac>=0.9.6',
         'pyhive[hive]',
         'pyarrow>=0.16.0',
