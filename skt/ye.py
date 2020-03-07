@@ -23,7 +23,7 @@ def get_pkl_from_hdfs(pkl_path):
     import pickle
     conn = get_hdfs_conn()
     byte_object = conn.cat(f'{pkl_path}')
-    pkl_object =  pickle.loads(byte_object)
+    pkl_object = pickle.loads(byte_object)
     return pkl_object
 
 
