@@ -86,6 +86,13 @@ path = get_recent_model_path(COMM_DB, model_key)
 model = get_pkl_from_hdfs(f'{path})
 ```
 
+
+Use NES CLI
+```bas
+nes input_notebook_url -p k1 v1 -p k2 v2 -p k3 v3
+```
+
+
 ## Installation
 
 ```sh
@@ -97,6 +104,12 @@ If you would like to install submodules for AIR
 ```sh
 $ pip install skt[air] --upgrade
 ```
+
+## Develop
+
+Create issue first and follow the GitHub flow
+https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/github-flow
+
 
 # AIPS EDA tools
 

@@ -26,7 +26,7 @@ air = [
 
 setuptools.setup(
     name="skt",
-    version="0.1.19",
+    version="0.1.20",
     author="SKT",
     author_email="all@sktai.io",
     description="SKT package",
@@ -49,7 +49,9 @@ setuptools.setup(
         'slackclient>=2.5.0',
         'google-cloud-bigquery>=1.24.0',
         'httplib2==0.17.0',
+        'click',
     ],
+    entry_points={'console_scripts': ['nes = skt.nes:nes_cli']},
     extras_require={
         'air': air,
     }
