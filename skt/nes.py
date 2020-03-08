@@ -9,7 +9,7 @@ def nes_submit(
     input_notebook,
     parameters=None,
 ):
-    data = []
+    data = {}
     data['input_url'] = input_notebook
     if parameters:
         data['parameters'] = parameters
@@ -50,7 +50,7 @@ def nes_execute(
 
 
 @click.command(context_settings=dict(help_option_names=['-h', '--help']))
-@click.argument('input_notebook', help='Github url of notebook')
+@click.argument('input_notebook')
 @click.option(
     '--parameters', '-p', nargs=2, multiple=True, help='Parameters to pass to the parameters cell.'
 )
