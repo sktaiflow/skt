@@ -49,6 +49,7 @@ setuptools.setup(
         'slackclient>=2.5.0',
         'google-cloud-bigquery>=1.24.0',
         'httplib2==0.17.0',
+        'click',
     ],
     extras_require={
         'air': air,
