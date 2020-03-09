@@ -60,12 +60,11 @@ spark.stop()
 Work with spark-bigquery-connector
 ```python
 # SELECT
-from skt.gcp import bq_table_to_df 
-df = bq_table_to_df('dataset', 'table_name', 'ym = 2003')
-df.select(col_list).where('sex_cd is no null').toPandas()
+from skt.gcp import bq_table_to_pandas 
+pandas_df = bq_table_to_pandas('dataset', 'table_name', ['col_1', 'col_2'], '2020-01-01', 'svc_mgmt_num is not null')
 # INSERT 
 from skt.gcp import pandas_to_bq_table
-pandas_to_bq_table(pd_df, 'dataset', 'table_name', '2020-03-01')
+pandas_to_bq_table(pandas_df, 'dataset', 'table_name', '2020-03-01')
 ```
 
 
