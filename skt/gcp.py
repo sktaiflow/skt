@@ -38,7 +38,7 @@ def get_spark_for_bigquery():
     return spark
 
 
-def bq_table_to_df(dataset, table_name, col_list, partition=None, where=None):
+def bq_table_to_pandas(dataset, table_name, col_list, partition=None, where=None):
     import os
     os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '/etc/hadoop/conf/google-access-key.json'
     spark = get_spark_for_bigquery()
