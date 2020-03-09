@@ -57,6 +57,18 @@ spark.stop()
 ```
 
 
+Work with spark-bigquery-connector
+```python
+# SELECT
+from skt.gcp import bq_table_to_df 
+df = bq_table_to_df('dataset', 'table_name', 'ym = 2003')
+df.select(col_list).where('sex_cd is no null').toPandas()
+# INSERT 
+from skt.gcp import pandas_to_bq_table
+pandas_to_bq_table(pd_df, 'dataset', 'table_name', '2020-03-01')
+```
+
+
 Send slack message
 ```python
 from skt.ye import slack_send
