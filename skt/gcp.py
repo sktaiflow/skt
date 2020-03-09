@@ -19,11 +19,7 @@ def bq_to_pandas(query):
 
 
 def get_spark_for_bigquery():
-    import os
     from pyspark.sql import SparkSession
-
-    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '/etc/hadoop/conf/google-access-key.json'
-
     spark = SparkSession \
         .builder \
         .config('spark.driver.memory', '32g') \
@@ -36,28 +32,47 @@ def get_spark_for_bigquery():
         .config('spark.executor.memoryOverhead', '2000') \
         .config('spark.sql.execution.arrow.enabled', 'true') \
         .config("spark.jars",
-                "/usr/hdp/3.0.1.0-187/spark2/jars/spark-bigquery-with-dependencies_2.11-0.13.1-beta.jar") \
+                "gs://external_libs/spark/jars/spark-bigquery-with-dependencies_2.11-0.13.1-beta.jar") \
         .config('spark.yarn.queue', 'airflow_job') \
         .getOrCreate()
-
     return spark
 
 
-def bq_table_to_df(dataset, table_name, filter):
+def bq_table_to_df(dataset, table_name, col_list, partition=None, where=None):
+    import os
+    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '/etc/hadoop/conf/google-access-key.json'
     spark = get_spark_for_bigquery()
     df = spark.read.format("bigquery") \
-        .option("credentialsFile", "/etc/hadoop/conf/google-access-key.json") \
-        .option("table", f"{dataset}.{table_name}") \
-        .option("filter", filter) \
-        .load()
-    return df
+            .option("project", "sktaic-datahub") \
+            .option("table", f"sktaic-datahub:{dataset}.{table_name}") \
+            .option("credentialsFile", '/etc/hadoop/conf/google-access-key.json')
+    if partition:
+        table = get_bigquery_client().get_table(f'{dataset}.{table_name}')
+        if 'timePartitioning' in table._properties:
+            partition_column_name = table._properties['timePartitioning']['field']
+        elif 'rangePartitioning' in table._properties:
+            partition_column_name = table._properties['rangePartitioning']['field']
+        else:
+            partition_column_name = None
+        if partition_column_name:
+            filter = f'{partition_column_name} = {partition}'
+            df = df.option("filter", filter)
+    df = df.load().select(col_list)
+    if where:
+        df.where(where)
+    pd_df = df.toPandas()
+    spark.stop()
+    return pd_df
 
 
 def pandas_to_bq_table(df, dataset, table_name, partition=None):
+    import os
+    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '/etc/hadoop/conf/google-access-key.json'
     spark = get_spark_for_bigquery()
     spark_df = spark.createDataFrame(df)
     table = f"{dataset}.{table_name}${partition}" if partition else f"{dataset}.{table_name}"
     spark_df.write.format("bigquery") \
+        .option("project", "sktaic-datahub") \
         .option("credentialsFile", "/etc/hadoop/conf/google-access-key.json") \
         .option("table", table) \
         .option("temporaryGcsBucket", "mnoai-us") \
