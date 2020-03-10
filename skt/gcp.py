@@ -50,12 +50,13 @@ def bq_table_to_pandas(dataset, table_name, col_list, partition=None, where=None
         table = get_bigquery_client().get_table(f'{dataset}.{table_name}')
         if 'timePartitioning' in table._properties:
             partition_column_name = table._properties['timePartitioning']['field']
+            filter = f"{partition_column_name} = '{partition}'"
         elif 'rangePartitioning' in table._properties:
             partition_column_name = table._properties['rangePartitioning']['field']
+            filter = f"{partition_column_name} = {partition}"
         else:
             partition_column_name = None
         if partition_column_name:
-            filter = f'{partition_column_name} = {partition}'
             df = df.option("filter", filter)
     df = df.load().select(col_list)
     if where:
