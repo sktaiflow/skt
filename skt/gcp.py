@@ -38,44 +38,80 @@ def get_spark_for_bigquery():
     return spark
 
 
+def gcp_credentials_decorator_for_spark_bigquery(func):
+    def decorated(*args, **kwargs):
+        import os.path
+        import tempfile
+        from skt.vault_utils import get_secrets
+        try:
+            if 'GOOGLE_APPLICATION_CREDENTIALS' in os.environ:
+                key_file_name = os.environ['GOOGLE_APPLICATION_CREDENTIALS']
+                if not os.path.isfile(key_file_name):
+                    with open(key_file_name, 'wb') as key_file:
+                        key = get_secrets('gcp/sktaic-datahub/dataflow')['config']
+                        key_file.write(key.encode())
+                        key_file.seek(0)
+            else:
+                key_file = tempfile.NamedTemporaryFile(delete=False)
+                key = get_secrets('gcp/sktaic-datahub/dataflow')['config']
+                key_file.write(key.encode())
+                key_file.seek(0)
+                os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = key_file.name
+            result = func(*args, **kwargs)
+        finally:
+            if os.path.isfile(os.environ['GOOGLE_APPLICATION_CREDENTIALS']):
+                os.remove(os.environ['GOOGLE_APPLICATION_CREDENTIALS'])
+        return result
+    return decorated
+
+
+@gcp_credentials_decorator_for_spark_bigquery
 def bq_table_to_pandas(dataset, table_name, col_list, partition=None, where=None):
-    import os
-    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '/etc/hadoop/conf/google-access-key.json'
-    spark = get_spark_for_bigquery()
-    df = spark.read.format("bigquery") \
-            .option("project", "sktaic-datahub") \
-            .option("table", f"sktaic-datahub:{dataset}.{table_name}") \
-            .option("credentialsFile", '/etc/hadoop/conf/google-access-key.json')
-    if partition:
-        table = get_bigquery_client().get_table(f'{dataset}.{table_name}')
-        if 'timePartitioning' in table._properties:
-            partition_column_name = table._properties['timePartitioning']['field']
-            filter = f"{partition_column_name} = '{partition}'"
-        elif 'rangePartitioning' in table._properties:
-            partition_column_name = table._properties['rangePartitioning']['field']
-            filter = f"{partition_column_name} = {partition}"
-        else:
-            partition_column_name = None
-        if partition_column_name:
-            df = df.option("filter", filter)
-    df = df.load().select(col_list)
-    if where:
-        df.where(where)
-    pd_df = df.toPandas()
-    spark.stop()
+    import base64
+    from skt.vault_utils import get_secrets
+    try:
+        spark = get_spark_for_bigquery()
+        key = get_secrets('gcp/sktaic-datahub/dataflow')['config']
+        df = spark.read.format("bigquery") \
+                .option("project", "sktaic-datahub") \
+                .option("table", f"sktaic-datahub:{dataset}.{table_name}") \
+                .option("credentials", base64.b64encode(key.encode()).decode())
+        if partition:
+            table = get_bigquery_client().get_table(f'{dataset}.{table_name}')
+            if 'timePartitioning' in table._properties:
+                partition_column_name = table._properties['timePartitioning']['field']
+                filter = f"{partition_column_name} = '{partition}'"
+            elif 'rangePartitioning' in table._properties:
+                partition_column_name = table._properties['rangePartitioning']['field']
+                filter = f"{partition_column_name} = {partition}"
+            else:
+                partition_column_name = None
+            if partition_column_name:
+                df = df.option("filter", filter)
+        df = df.option("filter", filter)
+        df = df.load().select(col_list)
+        if where:
+            df.where(where)
+        pd_df = df.toPandas()
+    finally:
+        spark.stop()
     return pd_df
 
 
+@gcp_credentials_decorator_for_spark_bigquery
 def pandas_to_bq_table(df, dataset, table_name, partition=None):
-    import os
-    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '/etc/hadoop/conf/google-access-key.json'
-    spark = get_spark_for_bigquery()
-    spark_df = spark.createDataFrame(df)
-    table = f"{dataset}.{table_name}${partition}" if partition else f"{dataset}.{table_name}"
-    spark_df.write.format("bigquery") \
-        .option("project", "sktaic-datahub") \
-        .option("credentialsFile", "/etc/hadoop/conf/google-access-key.json") \
-        .option("table", table) \
-        .option("temporaryGcsBucket", "mnoai-us") \
-        .save(mode='overwrite')
-    spark.stop()
+    import base64
+    from skt.vault_utils import get_secrets
+    try:
+        spark = get_spark_for_bigquery()
+        key = get_secrets('gcp/sktaic-datahub/dataflow')['config']
+        spark_df = spark.createDataFrame(df)
+        table = f"{dataset}.{table_name}${partition}" if partition else f"{dataset}.{table_name}"
+        spark_df.write.format("bigquery") \
+            .option("project", "sktaic-datahub") \
+            .option("credentials", base64.b64encode(key.encode()).decode()) \
+            .option("table", table) \
+            .option("temporaryGcsBucket", "mnoai-us") \
+            .save(mode='overwrite')
+    finally:
+        spark.stop()
