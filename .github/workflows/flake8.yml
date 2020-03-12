@@ -1,0 +1,21 @@
+name: Flake8
+  
+on:
+  push:
+    branches:
+      - '*'
+      - '!master'
+      - '!develop'
+
+jobs:
+  build:
+    name: Flake8
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Flake8
+      uses: actions/setup-python@v1
+      with:
+        python-version: '3.6'
+    - run: pip install flake8
+    - run: flake8
