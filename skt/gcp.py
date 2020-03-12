@@ -73,9 +73,9 @@ def bq_table_to_pandas(dataset, table_name, col_list, partition=None, where=None
         spark = get_spark_for_bigquery()
         key = get_secrets('gcp/sktaic-datahub/dataflow')['config']
         df = spark.read.format("bigquery") \
-                .option("project", "sktaic-datahub") \
-                .option("table", f"sktaic-datahub:{dataset}.{table_name}") \
-                .option("credentials", base64.b64encode(key.encode()).decode())
+            .option("project", "sktaic-datahub") \
+            .option("table", f"sktaic-datahub:{dataset}.{table_name}") \
+            .option("credentials", base64.b64encode(key.encode()).decode())
         if partition:
             table = get_bigquery_client().get_table(f'{dataset}.{table_name}')
             if 'timePartitioning' in table._properties:
