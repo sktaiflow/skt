@@ -40,6 +40,7 @@ def get_spark(scale=0):
             .config('spark.driver.maxResultSize', f'{scale*4}g') \
             .config('spark.rpc.message.maxSize', '1024') \
             .config('spark.yarn.queue', 'airflow_job') \
+            .config('spark.ui.enabled', 'false') \
             .enableHiveSupport() \
             .getOrCreate()
     else:
@@ -51,6 +52,7 @@ def get_spark(scale=0):
             .config('spark.dynamicAllocation.enabled', 'true') \
             .config('spark.dynamicAllocation.maxExecutors', '200') \
             .config('spark.yarn.queue', 'airflow_job') \
+            .config('spark.ui.enabled', 'false') \
             .enableHiveSupport() \
             .getOrCreate()
     spark.conf.set('spark.sql.execution.arrow.enabled', 'true')
