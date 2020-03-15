@@ -42,6 +42,8 @@ def get_spark(scale=0):
             .config('spark.yarn.queue', 'airflow_job') \
             .config('spark.ui.enabled', 'false') \
             .config('spark.port.maxRetries', '128') \
+            .config('spark.executorEnv.ARROW_PRE_0_15_IPC_FORMAT', '1') \
+            .config('spark.yarn.appMasterEnv.ARROW_PRE_0_15_IPC_FORMAT', '1') \
             .enableHiveSupport() \
             .getOrCreate()
     else:
@@ -55,6 +57,8 @@ def get_spark(scale=0):
             .config('spark.yarn.queue', 'airflow_job') \
             .config('spark.ui.enabled', 'false') \
             .config('spark.port.maxRetries', '128') \
+            .config('spark.executorEnv.ARROW_PRE_0_15_IPC_FORMAT', '1') \
+            .config('spark.yarn.appMasterEnv.ARROW_PRE_0_15_IPC_FORMAT', '1') \
             .enableHiveSupport() \
             .getOrCreate()
     spark.conf.set('spark.sql.execution.arrow.enabled', 'true')
