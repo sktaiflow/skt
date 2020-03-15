@@ -144,3 +144,15 @@ def slack_send(
     r.raise_for_status()
     if not r.json()['ok']:
         raise Exception(r.json())
+
+
+def get_github_util():
+    from github_utils import GithubUtil
+    github_token = get_secrets('github/sktaiflow')['token']
+    proxy = get_secrets('proxy')['proxy']
+    proxies = {
+        'http': proxy,
+        'https': proxy,
+    }
+    g = GithubUtil(github_token, proxies)
+    return g
