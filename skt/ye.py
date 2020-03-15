@@ -147,7 +147,7 @@ def slack_send(
 
 
 def get_github_util():
-    from github_utils import GithubUtil
+    from skt.github_utils import GithubUtil
     github_token = get_secrets('github/sktaiflow')['token']
     proxy = get_secrets('proxy')['proxy']
     proxies = {

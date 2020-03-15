@@ -26,7 +26,7 @@ air = [
 
 setuptools.setup(
     name="skt",
-    version="0.1.28",
+    version="0.1.29",
     author="SKT",
     author_email="all@sktai.io",
     description="SKT package",
@@ -50,6 +50,7 @@ setuptools.setup(
         'google-cloud-bigquery>=1.24.0',
         'httplib2==0.17.0',
         'click',
+        'PyGithub',
     ],
     entry_points={'console_scripts': ['nes = skt.nes:nes_cli']},
     extras_require={
