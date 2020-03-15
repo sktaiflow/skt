@@ -104,6 +104,17 @@ nes input_notebook_url -p k1 v1 -p k2 v2 -p k3 v3
 ```
 
 
+Use github util
+```python
+from skt.ye import get_github_util
+g = get_github_util
+# query graphql
+res = g.query_gql(graph_ql)
+# get file in github repository
+byte_object = g.download_from_git(github_url_path)
+```
+
+
 ## Installation
 
 ```sh
