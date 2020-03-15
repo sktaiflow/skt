@@ -8,8 +8,8 @@ from contextlib import contextmanager
 def proxy(proxies):
     import os
     env_backup = dict(os.environ)
-    os.environ['HTTP_PROXY'] = proxies['http_proxy']
-    os.environ['HTTPS_PROXY'] = proxies['https_proxy']
+    os.environ['HTTP_PROXY'] = proxies['http']
+    os.environ['HTTPS_PROXY'] = proxies['https']
     yield
     os.environ.clear()
     os.environ.update(env_backup)
