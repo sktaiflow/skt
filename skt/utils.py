@@ -2,6 +2,7 @@ import pandas as pd
 from collections import Counter
 from skt.ye import hive_to_pandas, slack_send
 
+
 # post_filter 이후, context_mapping 을 마친 post_filter_with_context_id Table 생성
 def context_mapping(meta_table = None, comm_db = None, reco_type = None, model_name = None, dt = None, feature_ym = None):
     
