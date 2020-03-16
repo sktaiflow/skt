@@ -1,4 +1,3 @@
-import pandas as pd
 from collections import Counter
 from skt.ye import hive_to_pandas, slack_send
 
