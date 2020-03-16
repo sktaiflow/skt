@@ -141,8 +141,9 @@ def pandas_to_bq_table(df, dataset, table_name, partition=None):
 def rdd_to_pandas(func):
     def _rdd_to_pandas(rdd_):
         import pandas as pd
+        from pyspark.sql import Row
         rows = (row_.asDict() for row_ in rdd_)
         pdf = pd.DataFrame(rows)
         result_pdf = func(pdf)
-        return result_pdf.to_dict(orient='records')
+        return [Row(**d) for d in result_pdf.to_dict(orient='records')]
     return _rdd_to_pandas
