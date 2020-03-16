@@ -23,7 +23,7 @@ def get_spark_for_bigquery():
     spark = SparkSession \
         .builder \
         .config('spark.driver.memory', '32g') \
-        .config('spark.executor.memory', '8g') \
+        .config('spark.executor.memory', '16g') \
         .config('spark.shuffle.service.enabled', 'true') \
         .config('spark.dynamicAllocation.enabled', 'true') \
         .config('spark.dynamicAllocation.maxExecutors', '200') \
@@ -65,53 +65,84 @@ def gcp_credentials_decorator_for_spark_bigquery(func):
     return decorated
 
 
-@gcp_credentials_decorator_for_spark_bigquery
-def bq_table_to_pandas(dataset, table_name, col_list, partition=None, where=None):
+def _bq_table_to_df(dataset, table_name, col_list, partition=None, where=None):
     import base64
     from skt.vault_utils import get_secrets
+    spark = get_spark_for_bigquery()
+    key = get_secrets('gcp/sktaic-datahub/dataflow')['config']
+    df = spark.read.format("bigquery") \
+        .option("project", "sktaic-datahub") \
+        .option("table", f"sktaic-datahub:{dataset}.{table_name}") \
+        .option("credentials", base64.b64encode(key.encode()).decode())
+    if partition:
+        table = get_bigquery_client().get_table(f'{dataset}.{table_name}')
+        if 'timePartitioning' in table._properties:
+            partition_column_name = table._properties['timePartitioning']['field']
+            filter = f"{partition_column_name} = '{partition}'"
+        elif 'rangePartitioning' in table._properties:
+            partition_column_name = table._properties['rangePartitioning']['field']
+            filter = f"{partition_column_name} = {partition}"
+        else:
+            partition_column_name = None
+        if partition_column_name:
+            df = df.option("filter", filter)
+    df = df.option("filter", filter)
+    df = df.load().select(col_list)
+    if where:
+        df.where(where)
+    return df
+
+
+@gcp_credentials_decorator_for_spark_bigquery
+def bq_table_to_df(dataset, table_name, col_list, partition=None, where=None):
+    return _bq_table_to_df(dataset, table_name, col_list, partition, where)
+
+
+@gcp_credentials_decorator_for_spark_bigquery
+def bq_table_to_pandas(dataset, table_name, col_list, partition=None, where=None):
     try:
-        spark = get_spark_for_bigquery()
-        key = get_secrets('gcp/sktaic-datahub/dataflow')['config']
-        df = spark.read.format("bigquery") \
-            .option("project", "sktaic-datahub") \
-            .option("table", f"sktaic-datahub:{dataset}.{table_name}") \
-            .option("credentials", base64.b64encode(key.encode()).decode())
-        if partition:
-            table = get_bigquery_client().get_table(f'{dataset}.{table_name}')
-            if 'timePartitioning' in table._properties:
-                partition_column_name = table._properties['timePartitioning']['field']
-                filter = f"{partition_column_name} = '{partition}'"
-            elif 'rangePartitioning' in table._properties:
-                partition_column_name = table._properties['rangePartitioning']['field']
-                filter = f"{partition_column_name} = {partition}"
-            else:
-                partition_column_name = None
-            if partition_column_name:
-                df = df.option("filter", filter)
-        df = df.option("filter", filter)
-        df = df.load().select(col_list)
-        if where:
-            df.where(where)
+        df = _bq_table_to_df(dataset, table_name, col_list, partition, where)
         pd_df = df.toPandas()
     finally:
+        spark = get_spark_for_bigquery()
         spark.stop()
     return pd_df
 
 
-@gcp_credentials_decorator_for_spark_bigquery
-def pandas_to_bq_table(df, dataset, table_name, partition=None):
+def _df_to_bq_table(df, dataset, table_name, partition=None):
     import base64
     from skt.vault_utils import get_secrets
+    key = get_secrets('gcp/sktaic-datahub/dataflow')['config']
+    table = f"{dataset}.{table_name}${partition}" if partition else f"{dataset}.{table_name}"
+    df.write.format("bigquery") \
+        .option("project", "sktaic-datahub") \
+        .option("credentials", base64.b64encode(key.encode()).decode()) \
+        .option("table", table) \
+        .option("temporaryGcsBucket", "mnoai-us") \
+        .save(mode='overwrite')
+
+
+@gcp_credentials_decorator_for_spark_bigquery
+def df_to_bq_table(df, dataset, table_name, partition=None):
+    _df_to_bq_table(df, dataset, table_name, partition)
+
+
+@gcp_credentials_decorator_for_spark_bigquery
+def pandas_to_bq_table(df, dataset, table_name, partition=None):
     try:
         spark = get_spark_for_bigquery()
-        key = get_secrets('gcp/sktaic-datahub/dataflow')['config']
         spark_df = spark.createDataFrame(df)
-        table = f"{dataset}.{table_name}${partition}" if partition else f"{dataset}.{table_name}"
-        spark_df.write.format("bigquery") \
-            .option("project", "sktaic-datahub") \
-            .option("credentials", base64.b64encode(key.encode()).decode()) \
-            .option("table", table) \
-            .option("temporaryGcsBucket", "mnoai-us") \
-            .save(mode='overwrite')
+        _df_to_bq_table(spark_df, dataset, table_name, partition)
     finally:
         spark.stop()
+
+
+# decorator for rdd to pandas in mapPartitions in Spark
+def rdd_to_pandas(func):
+    def _rdd_to_pandas(rdd_):
+        import pandas as pd
+        rows = (row_.asDict() for row_ in rdd_)
+        pdf = pd.DataFrame(rows)
+        result_pdf = func(pdf)
+        return result_pdf.to_dict(orient='records')
+    return _rdd_to_pandas
