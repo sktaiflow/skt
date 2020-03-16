@@ -140,6 +140,7 @@ def pandas_to_bq_table(df, dataset, table_name, partition=None):
 # decorator for rdd to pandas in mapPartitions in Spark
 def rdd_to_pandas(func):
     def _rdd_to_pandas(rdd_):
+        import pandas as pd
         rows = (row_.asDict() for row_ in rdd_)
         pdf = pd.DataFrame(rows)
         result_pdf = func(pdf)
