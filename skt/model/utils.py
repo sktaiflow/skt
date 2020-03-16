@@ -42,7 +42,7 @@ def context_mapping(
 
     if CONTEXT_NUM == 1:
         context_count_list = list(Counter(list(post_filter_with_y['context_id'].values)).items())
-        msg = ('[CONTEXT-MAPPING-SUMMARY]' + '\n'+str(context_count_list[0][0]) +' : '+ str(context_count_list[0][1]))
+        msg = ('[CONTEXT-MAPPING-SUMMARY]' + '\n' + str(context_count_list[0][0]) + ' : ' + str(context_count_list[0][1]))
 
     # 4. context_num >= 2 : context mapping (with context priority)
     else:
@@ -66,11 +66,11 @@ def context_mapping(
         context_count_list = list(Counter(list(post_filter_with_y['context_id'].values)).items())
         msg = '[CONTEXT-MAPPING-SUMMARY]'
         for j in range(CONTEXT_NUM):
-            msg_ = ('\n' + str(context_count_list[j][0]) +' : ' +str(context_count_list[j][1]))
+            msg_ = ('\n' + str(context_count_list[j][0]) + ' : ' + str(context_count_list[j][1]))
             msg += msg_
 
     # 5. Slack Report
     slack_send(text=msg, channel="#rec_modeling_alert", icon_emoji=':mag:')
- 
+
     # 6. return post_filter_with_y_with_context_id Table
     return post_filter_with_y
