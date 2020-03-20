@@ -28,7 +28,7 @@ def context_mapping(
     ITEM_ID_LIST = list(set(post_filter_with_y['prod_id'].values))
     print('------------------' + 'num(item_id) : ' + str(len(ITEM_ID_LIST)))
 
-    # 1+b. item_id 한개씩 처리 
+    # 1+b. item_id 한개씩 처리
     for ITEM_ID in ITEM_ID_LIST:
         print('------------------' + 'item_id : ' + ITEM_ID)
 
