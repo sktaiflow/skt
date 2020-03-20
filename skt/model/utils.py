@@ -80,6 +80,8 @@ def context_mapping(
                 msg_ = ('\n' + str(context_count_list[j][0]) + ' : ' + str(context_count_list[j][1]))
                 msg += msg_
 
+        del meta
+        del df_context
         # 5. Slack Report
         slack_send(text=msg, channel="#rec_modeling_alert", icon_emoji=':mag:')
 
