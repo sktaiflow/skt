@@ -35,8 +35,8 @@ def get_spark(scale=0):
         spark = SparkSession \
             .builder \
             .config('spark.driver.memory', f'{scale*8}g') \
-            .config('spark.executor.memory', f'{scale*2}g') \
-            .config('spark.executor.number', f'{scale*8}g') \
+            .config('spark.executor.memory', f'{scale*3}g') \
+            .config('spark.executor.instances', f'{scale*8}') \
             .config('spark.driver.maxResultSize', f'{scale*4}g') \
             .config('spark.rpc.message.maxSize', '1024') \
             .config('spark.yarn.queue', 'airflow_job') \
@@ -49,11 +49,13 @@ def get_spark(scale=0):
     else:
         spark = SparkSession \
             .builder \
-            .config('spark.driver.memory', '4g') \
-            .config('spark.executor.memory', '4g') \
+            .config('spark.driver.memory', '6g') \
+            .config('spark.executor.memory', '8g') \
             .config('spark.shuffle.service.enabled', 'true') \
             .config('spark.dynamicAllocation.enabled', 'true') \
             .config('spark.dynamicAllocation.maxExecutors', '200') \
+            .config('spark.driver.maxResultSize', f'6g') \
+            .config('spark.rpc.message.maxSize', '1024') \
             .config('spark.yarn.queue', 'airflow_job') \
             .config('spark.ui.enabled', 'false') \
             .config('spark.port.maxRetries', '128') \
