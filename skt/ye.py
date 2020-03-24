@@ -30,10 +30,14 @@ def get_pkl_from_hdfs(pkl_path):
 def get_spark(scale=0):
     import os
     from pyspark.sql import SparkSession
+    import uuid
+    tmp_uuid = str(uuid.uuid4())
+    app_name = f"skt-{os.environ['USER']}-{tmp_uuid}"
     os.environ['ARROW_PRE_0_15_IPC_FORMAT'] = '1'
     if scale in [1, 2, 3, 4]:
         spark = SparkSession \
             .builder \
+            .config('spark.app.name', app_name) \
             .config('spark.driver.memory', f'{scale*8}g') \
             .config('spark.executor.memory', f'{scale*3}g') \
             .config('spark.executor.instances', f'{scale*8}') \
@@ -49,6 +53,7 @@ def get_spark(scale=0):
     else:
         spark = SparkSession \
             .builder \
+            .config('spark.app.name', app_name) \
             .config('spark.driver.memory', '6g') \
             .config('spark.executor.memory', '8g') \
             .config('spark.shuffle.service.enabled', 'true') \
