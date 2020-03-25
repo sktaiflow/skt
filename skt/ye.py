@@ -32,7 +32,7 @@ def get_spark(scale=0):
     from pyspark.sql import SparkSession
     import uuid
     tmp_uuid = str(uuid.uuid4())
-    app_name = f"skt-{os.environ['USER']}-{tmp_uuid}"
+    app_name = f"skt-{os.environ.get('USER', 'default')}-{tmp_uuid}"
     os.environ['ARROW_PRE_0_15_IPC_FORMAT'] = '1'
     if scale in [1, 2, 3, 4]:
         spark = SparkSession \
