@@ -27,12 +27,17 @@ def get_pkl_from_hdfs(pkl_path):
     return pkl_object
 
 
-def get_spark(scale=0):
+def get_spark(scale=0, queue=None):
     import os
     from pyspark.sql import SparkSession
     import uuid
     tmp_uuid = str(uuid.uuid4())
     app_name = f"skt-{os.environ.get('USER', 'default')}-{tmp_uuid}"
+    if not queue:
+        if 'NB_USER' in os.environ:
+            queue = 'dmig_eda'
+        else:
+            queue = 'airflow_job'
     os.environ['ARROW_PRE_0_15_IPC_FORMAT'] = '1'
     if scale in [1, 2, 3, 4]:
         spark = SparkSession \
@@ -43,7 +48,7 @@ def get_spark(scale=0):
             .config('spark.executor.instances', f'{scale*8}') \
             .config('spark.driver.maxResultSize', f'{scale*4}g') \
             .config('spark.rpc.message.maxSize', '1024') \
-            .config('spark.yarn.queue', 'airflow_job') \
+            .config('spark.yarn.queue', queue) \
             .config('spark.ui.enabled', 'false') \
             .config('spark.port.maxRetries', '128') \
             .config('spark.executorEnv.ARROW_PRE_0_15_IPC_FORMAT', '1') \
@@ -61,7 +66,7 @@ def get_spark(scale=0):
             .config('spark.dynamicAllocation.maxExecutors', '200') \
             .config('spark.driver.maxResultSize', f'6g') \
             .config('spark.rpc.message.maxSize', '1024') \
-            .config('spark.yarn.queue', 'airflow_job') \
+            .config('spark.yarn.queue', queue) \
             .config('spark.ui.enabled', 'false') \
             .config('spark.port.maxRetries', '128') \
             .config('spark.executorEnv.ARROW_PRE_0_15_IPC_FORMAT', '1') \
