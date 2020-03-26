@@ -34,7 +34,7 @@ def get_spark(scale=0, queue=None):
     tmp_uuid = str(uuid.uuid4())
     app_name = f"skt-{os.environ.get('USER', 'default')}-{tmp_uuid}"
     if not queue:
-        if os.environ['NB_USER']:
+        if 'NB_USER' in os.environ:
             queue = 'dmig_eda'
         else:
             queue = 'airflow_job'
