@@ -3,7 +3,7 @@ def get_bigquery_client():
     import tempfile
     from google.cloud import bigquery
     from skt.vault_utils import get_secrets
-    if 'GOOGLE_APPLICATION_CREDENTIALS' in os.environ:
+    if 'GOOGLE_APPLICATION_CREDENTIALS' in os.environ :
         return bigquery.Client()
     key = get_secrets('gcp/sktaic-datahub/dataflow')['config']
     with tempfile.NamedTemporaryFile() as f:
@@ -88,7 +88,6 @@ def _bq_table_to_df(dataset, table_name, col_list, partition=None, where=None):
             partition_column_name = None
         if partition_column_name:
             df = df.option("filter", filter)
-    df = df.option("filter", filter)
     df = df.load().select(col_list)
     if where:
         df.where(where)
