@@ -3,7 +3,7 @@ def get_bigquery_client():
     import tempfile
     from google.cloud import bigquery
     from skt.vault_utils import get_secrets
-    if 'GOOGLE_APPLICATION_CREDENTIALS' in os.environ :
+    if 'GOOGLE_APPLICATION_CREDENTIALS' in os.environ and os.path.isfile(os.environ['GOOGLE_APPLICATION_CREDENTIALS']):
         return bigquery.Client()
     key = get_secrets('gcp/sktaic-datahub/dataflow')['config']
     with tempfile.NamedTemporaryFile() as f:
