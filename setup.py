@@ -52,6 +52,7 @@ setuptools.setup(
         'httplib2==0.17.0',
         'click',
         'PyGithub',
+	'pycryptodome'
     ],
     entry_points={'console_scripts': ['nes = skt.nes:nes_cli']},
     extras_require={
