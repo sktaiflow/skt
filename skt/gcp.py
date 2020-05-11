@@ -35,6 +35,8 @@ def get_spark_for_bigquery():
         .config('spark.sql.execution.arrow.enabled', 'true') \
         .config("spark.jars",
                 "gs://external_libs/spark/jars/spark-bigquery-with-dependencies_2.11-0.13.1-beta.jar") \
+        .config('spark.executorEnv.ARROW_PRE_0_15_IPC_FORMAT', '1') \
+        .config('spark.yarn.appMasterEnv.ARROW_PRE_0_15_IPC_FORMAT', '1') \
         .config('spark.yarn.queue', 'airflow_job') \
         .getOrCreate()
     return spark
@@ -110,7 +112,7 @@ def bq_table_to_pandas(dataset, table_name, col_list, partition=None, where=None
     return pd_df
 
 
-def _df_to_bq_table(df, dataset, table_name, partition=None):
+def _df_to_bq_table(df, dataset, table_name, partition=None, mode='overwrite'):
     import base64
     from skt.vault_utils import get_secrets
     key = get_secrets('gcp/sktaic-datahub/dataflow')['config']
@@ -120,20 +122,20 @@ def _df_to_bq_table(df, dataset, table_name, partition=None):
         .option("credentials", base64.b64encode(key.encode()).decode()) \
         .option("table", table) \
         .option("temporaryGcsBucket", "mnoai-us") \
-        .save(mode='overwrite')
+        .save(mode=mode)
 
 
 @gcp_credentials_decorator_for_spark_bigquery
-def df_to_bq_table(df, dataset, table_name, partition=None):
-    _df_to_bq_table(df, dataset, table_name, partition)
+def df_to_bq_table(df, dataset, table_name, partition=None, mode='overwrite'):
+    _df_to_bq_table(df, dataset, table_name, partition, mode)
 
 
 @gcp_credentials_decorator_for_spark_bigquery
-def pandas_to_bq_table(df, dataset, table_name, partition=None):
+def pandas_to_bq_table(df, dataset, table_name, partition=None, mode='overwrite'):
     try:
         spark = get_spark_for_bigquery()
         spark_df = spark.createDataFrame(df)
-        _df_to_bq_table(spark_df, dataset, table_name, partition)
+        _df_to_bq_table(spark_df, dataset, table_name, partition, mode)
     finally:
         spark.stop()
 
