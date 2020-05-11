@@ -1,3 +1,37 @@
+def is_ipython():
+    try:
+        from IPython import get_ipython
+        shell = get_ipython().__class__.__name__
+        if shell == 'ZMQInteractiveShell':
+            return True   # Jupyter notebook or qtconsole
+        elif shell == 'TerminalInteractiveShell':
+            return False  # Terminal running IPython
+        else:
+            return False  # Other type (?)
+    except NameError:
+        return False      # Probably standard Python interpreter
+
+
+def set_gcp_credentials():
+    import os
+    import tempfile
+    from skt.vault_utils import get_secrets
+    key = get_secrets('gcp/sktaic-datahub/dataflow')['config']
+    key_file_name = tempfile.mkstemp()[1]
+    with open(key_file_name, 'wb') as key_file:
+        key_file.write(key.encode())
+        os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = key_file.name
+
+
+def import_bigquery_ipython_magic():
+    if is_ipython():
+        from IPython import get_ipython
+        set_gcp_credentials()
+        get_ipython().magic('load_ext google.cloud.bigquery')
+    else:
+        raise Exception('Cannot import bigquery magic. Because execution is not on ipython.')
+
+
 def get_bigquery_client():
     import os
     import tempfile
@@ -21,6 +55,7 @@ def bq_to_pandas(query):
 
 
 def get_spark_for_bigquery():
+    set_gcp_credentials()
     from pyspark.sql import SparkSession
     spark = SparkSession \
         .builder \
@@ -47,6 +82,7 @@ def gcp_credentials_decorator_for_spark_bigquery(func):
         import os.path
         import tempfile
         from skt.vault_utils import get_secrets
+        is_key_temp = False
         try:
             if 'GOOGLE_APPLICATION_CREDENTIALS' in os.environ:
                 key_file_name = os.environ['GOOGLE_APPLICATION_CREDENTIALS']
@@ -61,9 +97,10 @@ def gcp_credentials_decorator_for_spark_bigquery(func):
                 key_file.write(key.encode())
                 key_file.seek(0)
                 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = key_file.name
+                is_key_temp = True
             result = func(*args, **kwargs)
         finally:
-            if os.path.isfile(os.environ['GOOGLE_APPLICATION_CREDENTIALS']):
+            if os.path.isfile(os.environ['GOOGLE_APPLICATION_CREDENTIALS']) and is_key_temp:
                 os.remove(os.environ['GOOGLE_APPLICATION_CREDENTIALS'])
         return result
     return decorated
