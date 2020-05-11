@@ -35,6 +35,8 @@ def get_spark_for_bigquery():
         .config('spark.sql.execution.arrow.enabled', 'true') \
         .config("spark.jars",
                 "gs://external_libs/spark/jars/spark-bigquery-with-dependencies_2.11-0.13.1-beta.jar") \
+        .config('spark.executorEnv.ARROW_PRE_0_15_IPC_FORMAT', '1') \
+        .config('spark.yarn.appMasterEnv.ARROW_PRE_0_15_IPC_FORMAT', '1') \
         .config('spark.yarn.queue', 'airflow_job') \
         .getOrCreate()
     return spark
