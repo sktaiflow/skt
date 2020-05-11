@@ -1,5 +1,6 @@
 def is_ipython():
     try:
+        from IPython import get_ipython
         shell = get_ipython().__class__.__name__
         if shell == 'ZMQInteractiveShell':
             return True   # Jupyter notebook or qtconsole
@@ -24,6 +25,7 @@ def set_gcp_credentials():
 
 def import_bigquery_ipython_magic():
     if is_ipython():
+        from IPython import get_ipython
         set_gcp_credentials()
         get_ipython().magic('load_ext google.cloud.bigquery')
     else:
