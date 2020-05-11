@@ -47,6 +47,7 @@ def gcp_credentials_decorator_for_spark_bigquery(func):
         import os.path
         import tempfile
         from skt.vault_utils import get_secrets
+        is_key_temp = False
         try:
             if 'GOOGLE_APPLICATION_CREDENTIALS' in os.environ:
                 key_file_name = os.environ['GOOGLE_APPLICATION_CREDENTIALS']
@@ -61,9 +62,10 @@ def gcp_credentials_decorator_for_spark_bigquery(func):
                 key_file.write(key.encode())
                 key_file.seek(0)
                 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = key_file.name
+                is_key_temp = True
             result = func(*args, **kwargs)
         finally:
-            if os.path.isfile(os.environ['GOOGLE_APPLICATION_CREDENTIALS']):
+            if os.path.isfile(os.environ['GOOGLE_APPLICATION_CREDENTIALS']) and is_key_temp:
                 os.remove(os.environ['GOOGLE_APPLICATION_CREDENTIALS'])
         return result
     return decorated
