@@ -19,7 +19,6 @@ def set_gcp_credentials():
     key_file_name = tempfile.mkstemp()[1]
     with open(key_file_name, 'wb') as key_file:
         key_file.write(key.encode())
-        key_file.seek(0)
         os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = key_file.name
 
 
