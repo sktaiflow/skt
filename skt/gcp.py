@@ -26,7 +26,7 @@ def set_gcp_credentials():
 def import_bigquery_ipython_magic():
     if is_ipython():
         set_gcp_credentials()
-        %load_ext google.cloud.bigquery
+        get_ipython().magic('load_ext google.cloud.bigquery')
     else:
         raise Exception('Cannot import bigquery magic. Because execution is not on ipython.')
 
