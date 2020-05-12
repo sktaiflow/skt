@@ -1,4 +1,38 @@
-def is_ipython():
+def _bq_cell_magic(line, query):
+    from IPython.core import magic_arguments
+    from google.cloud.bigquery.magics import _cell_magic
+    import time
+    start = time.time()
+    args = magic_arguments.parse_argstring(_cell_magic, line)
+
+    if args.params is not None:
+        try:
+            from google.cloud.bigquery.dbapi import _helpers
+            import ast
+            params = _helpers.to_query_parameters(
+                ast.literal_eval("".join(args.params))
+            )
+            query_params = dict()
+            for p in params:
+                query_params[p.name] = p.value
+            query = query.format(**query_params)
+        except Exception:
+            raise SyntaxError(
+                "--params is not a correctly formatted JSON string or a JSON "
+                "serializable dictionary"
+            )
+    result = _cell_magic(line, query)
+    print(f'BigQuery execution took {int(time.time() - start)} seconds.')
+    return result
+
+
+def _load_bq_ipython_extension(ipython):
+    ipython.register_magic_function(
+        _bq_cell_magic, magic_kind="cell", magic_name="bq"
+    )
+
+
+def _is_ipython():
     try:
         from IPython import get_ipython
         shell = get_ipython().__class__.__name__
@@ -24,10 +58,10 @@ def set_gcp_credentials():
 
 
 def import_bigquery_ipython_magic():
-    if is_ipython():
+    if _is_ipython():
         from IPython import get_ipython
         set_gcp_credentials()
-        get_ipython().magic('load_ext google.cloud.bigquery')
+        _load_bq_ipython_extension(get_ipython())
     else:
         raise Exception('Cannot import bigquery magic. Because execution is not on ipython.')
 

@@ -64,7 +64,7 @@ def get_spark(scale=0, queue=None):
             .config('spark.shuffle.service.enabled', 'true') \
             .config('spark.dynamicAllocation.enabled', 'true') \
             .config('spark.dynamicAllocation.maxExecutors', '200') \
-            .config('spark.driver.maxResultSize', f'6g') \
+            .config('spark.driver.maxResultSize', '6g') \
             .config('spark.rpc.message.maxSize', '1024') \
             .config('spark.yarn.queue', queue) \
             .config('spark.ui.enabled', 'false') \
