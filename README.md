@@ -85,6 +85,24 @@ bq = get_bigquery_client()
 bq.query(query)
 ```
 
+IPython BigQuery Magic
+```python
+from skt.gcp import import_bigquery_ipython_magic
+
+import_bigquery_ipython_magic()
+
+query_params = {
+    "p_1": "v_1",
+    "dataset": "mnoai",
+}
+```
+```python
+%% bq --params $query_params
+
+SELECT c_1 
+FROM {dataset}.user_logs
+WHERE c_1 = @p_1
+```
 
 Access MLS
 ```python
