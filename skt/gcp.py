@@ -1,6 +1,8 @@
 def _bq_cell_magic(line, query):
     from IPython.core import magic_arguments
     from google.cloud.bigquery.magics import _cell_magic
+    import time
+    start = time.time()
     args = magic_arguments.parse_argstring(_cell_magic, line)
 
     if args.params is not None:
@@ -19,7 +21,9 @@ def _bq_cell_magic(line, query):
                 "--params is not a correctly formatted JSON string or a JSON "
                 "serializable dictionary"
             )
-    return _cell_magic(line, query)
+    result = _cell_magic(line, query)
+    print(f'BigQuery execution took {int(time.time() - start)} seconds.')
+    return result
 
 
 def _load_bq_ipython_extension(ipython):
