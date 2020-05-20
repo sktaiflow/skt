@@ -33,27 +33,27 @@ EDD_OPTIONS = """-Dfs.s3a.proxy.host=awsproxy.datalake.net \
 
 
 def set_model_name(comm_db, params):
-    secret = get_secrets('mls')
-    if comm_db[-3:] == 'dev':  # stg
-        url = secret['dev_url']
+    secret = get_secrets("mls")
+    if comm_db[-3:] == "dev":  # stg
+        url = secret["dev_url"]
     else:  # prd
-        url = secret['prd_url']
+        url = secret["prd_url"]
     requests.post(url, data=json.dumps(params))
 
 
 def get_recent_model_path(comm_db, model_key):
-    secret = get_secrets('mls')
-    if comm_db[-3:] == 'dev':  # stg
-        url = secret['dev_url']
+    secret = get_secrets("mls")
+    if comm_db[-3:] == "dev":  # stg
+        url = secret["dev_url"]
     else:  # prd
-        url = secret['prd_url']
-    return requests.get(f'{url}/latest').json()[model_key]
+        url = secret["prd_url"]
+    return requests.get(f"{url}/latest").json()[model_key]
 
 
 def get_model_name(key):
-    secret = get_secrets('mls')
-    url = secret['prd_url']
-    return requests.get(f'{url}/latest').json()[key]
+    secret = get_secrets("mls")
+    url = secret["prd_url"]
+    return requests.get(f"{url}/latest").json()[key]
 
 
 class ModelLibrary(Enum):
@@ -90,6 +90,7 @@ def save_model(
         - aws_env       :   (str) AWS ENV in 'stg / prd / dev' (default is 'stg') (default : 'stg)
         - feature_list  :   (List[str]) List of features used in ML Model in string type (only for XGBoost model type)
         - force         :   (bool) Force to overwrite model files on S3 if exists (default is False)
+        - edd           :   (bool) True if On-prem env is on EDD (default is False)
     """
 
     assert type(model_name) == str
@@ -101,7 +102,9 @@ def save_model(
         )
 
     if not bool(re.search("^[A-Za-z0-9_]+$", model_version)):
-        raise MLSModelError("model_name should follow naming rule. MUST be in alphabet, number, underscore")
+        raise MLSModelError(
+            "model_name should follow naming rule. MUST be in alphabet, number, underscore"
+        )
 
     def check_model_library(model):
         if isinstance(model, lightgbm.Booster):
@@ -109,13 +112,17 @@ def save_model(
         elif isinstance(model, xgboost.XGBModel):
             return ModelLibrary.XGBOOST.value, xgboost.__version__
         else:
-            raise MLSModelError("Input Model is none of LightGBM or XGBoost type")
+            raise MLSModelError(
+                "Input Model is none of LightGBM or XGBoost type"
+            )
 
     def get_feature_list(model, model_library: str):
         if model_library == ModelLibrary.LIGHTGBM.value:
             return model.feature_name()
         elif model_library == ModelLibrary.XGBOOST.value:
-            if all(isinstance(s, str) for s in feature_list) and len(feature_list) == len(model.feature_importances_):
+            if all(isinstance(s, str) for s in feature_list) and len(
+                feature_list
+            ) == len(model.feature_importances_):
                 return feature_list
             else:
                 raise MLSModelError(
@@ -140,7 +147,8 @@ def save_model(
     }
 
     model_path = os.path.join(
-        MLS_MODEL_DIR, f"{aws_env}_{model_name}_{model_version}_{datetime.today().strftime('%Y%m%d_%H%M%S')}"
+        MLS_MODEL_DIR,
+        f"{aws_env}_{model_name}_{model_version}_{datetime.today().strftime('%Y%m%d_%H%M%S')}",
     )
     try:
         if not os.path.exists(os.path.join(model_path, MODEL_BINARY_NAME)):
@@ -154,19 +162,31 @@ def save_model(
             with open(os.path.join(model_path, MODEL_META_NAME), "w") as f:
                 json.dump(model_meta, f)
         else:
-            raise MLSModelError(f"{model_name} / {model_version} is already in PATH ({model_path})")
+            raise MLSModelError(
+                f"{model_name} / {model_version} is already in PATH ({model_path})"
+            )
 
-        cmd_mkdir = f"hdfs dfs {EDD_OPTIONS if edd else ''} -mkdir -p {s3_path}"
+        cmd_mkdir = (
+            f"hdfs dfs {EDD_OPTIONS if edd else ''} -mkdir -p {s3_path}"
+        )
         cmd_load_model_to_s3 = f"hdfs dfs {EDD_OPTIONS if edd else ''} -put {'-f' if force else ''} {os.path.join(model_path, MODEL_TAR_NAME)} {s3_path}"
         cmd_load_meta_to_s3 = f"hdfs dfs {EDD_OPTIONS if edd else ''} -put {'-f' if force else ''} {os.path.join(model_path, MODEL_META_NAME)} {s3_path}"
 
-        process_mkdir = subprocess.Popen(shlex.split(cmd_mkdir), stdout=subprocess.PIPE, stdin=subprocess.PIPE)
+        process_mkdir = subprocess.Popen(
+            shlex.split(cmd_mkdir),
+            stdout=subprocess.PIPE,
+            stdin=subprocess.PIPE,
+        )
         process_mkdir.wait()
         if process_mkdir.returncode != 0:
-            raise MLSModelError(f"Making Directory on S3 ({s3_path}) is FAILED")
+            raise MLSModelError(
+                f"Making Directory on S3 ({s3_path}) is FAILED"
+            )
 
         process_model_binary = subprocess.Popen(
-            shlex.split(cmd_load_model_to_s3), stdout=subprocess.PIPE, stdin=subprocess.PIPE
+            shlex.split(cmd_load_model_to_s3),
+            stdout=subprocess.PIPE,
+            stdin=subprocess.PIPE,
         )
         process_model_binary.wait()
         if process_model_binary.returncode != 0:
@@ -175,11 +195,15 @@ def save_model(
             )
 
         process_model_meta = subprocess.Popen(
-            shlex.split(cmd_load_meta_to_s3), stdout=subprocess.PIPE, stdin=subprocess.PIPE
+            shlex.split(cmd_load_meta_to_s3),
+            stdout=subprocess.PIPE,
+            stdin=subprocess.PIPE,
         )
         process_model_meta.wait()
         if process_model_meta.returncode != 0:
-            raise MLSModelError(f"Load model_meta(meta.json) to S3 ({s3_path}) is FAILED")
+            raise MLSModelError(
+                f"Load model_meta(meta.json) to S3 ({s3_path}) is FAILED"
+            )
 
     finally:
         shutil.rmtree(model_path, ignore_errors=True)
