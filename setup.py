@@ -27,7 +27,7 @@ air = [
 
 setuptools.setup(
     name="skt",
-    version="0.1.47",
+    version="0.1.48",
     author="SKT",
     author_email="all@sktai.io",
     description="SKT package",
@@ -52,7 +52,8 @@ setuptools.setup(
         'httplib2==0.17.0',
         'click',
         'PyGithub',
-        'pycryptodome'
+        'pycryptodome',
+        "joblib==0.14.1"
     ],
     entry_points={'console_scripts': ['nes = skt.nes:nes_cli']},
     extras_require={
