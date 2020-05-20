@@ -11,6 +11,10 @@ jobs:
   test: 
     name: 'flake8 and black formatting' 
     runs-on: ubuntu-latest 
+    strategy: 
+      max-parallel: 4 
+      matrix: 
+        python-version: [3.6, 3.7, 3.8] 
 
     steps: 
     - name: 'Checkout' 
