@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List
+from typing import List, Dict, Any
 from enum import Enum
 
 import requests
@@ -30,6 +30,10 @@ EDD_OPTIONS = """-Dfs.s3a.proxy.host=awsproxy.datalake.net \
                  -Dfs.s3a.endpoint=s3.ap-northeast-2.amazonaws.com \
                  -Dfs.s3a.security.credential.provider.path=jceks:///user/tairflow/s3_mls.jceks \
                  -Dfs.s3a.fast.upload=true -Dfs.s3a.acl.default=BucketOwnerFullControl"""
+
+
+HEADER = {"Content-Type": "application/json"}
+MLS_META_API_URL = "/api/v1/meta"
 
 
 def set_model_name(comm_db, params):
@@ -102,9 +106,7 @@ def save_model(
         )
 
     if not bool(re.search("^[A-Za-z0-9_]+$", model_version)):
-        raise MLSModelError(
-            "model_name should follow naming rule. MUST be in alphabet, number, underscore"
-        )
+        raise MLSModelError("model_name should follow naming rule. MUST be in alphabet, number, underscore")
 
     def check_model_library(model):
         if isinstance(model, lightgbm.Booster):
@@ -112,17 +114,13 @@ def save_model(
         elif isinstance(model, xgboost.XGBModel):
             return ModelLibrary.XGBOOST.value, xgboost.__version__
         else:
-            raise MLSModelError(
-                "Input Model is none of LightGBM or XGBoost type"
-            )
+            raise MLSModelError("Input Model is none of LightGBM or XGBoost type")
 
     def get_feature_list(model, model_library: str):
         if model_library == ModelLibrary.LIGHTGBM.value:
             return model.feature_name()
         elif model_library == ModelLibrary.XGBOOST.value:
-            if all(isinstance(s, str) for s in feature_list) and len(
-                feature_list
-            ) == len(model.feature_importances_):
+            if all(isinstance(s, str) for s in feature_list) and len(feature_list) == len(model.feature_importances_):
                 return feature_list
             else:
                 raise MLSModelError(
@@ -147,8 +145,7 @@ def save_model(
     }
 
     model_path = os.path.join(
-        MLS_MODEL_DIR,
-        f"{aws_env}_{model_name}_{model_version}_{datetime.today().strftime('%Y%m%d_%H%M%S')}",
+        MLS_MODEL_DIR, f"{aws_env}_{model_name}_{model_version}_{datetime.today().strftime('%Y%m%d_%H%M%S')}",
     )
     try:
         if not os.path.exists(os.path.join(model_path, MODEL_BINARY_NAME)):
@@ -162,31 +159,19 @@ def save_model(
             with open(os.path.join(model_path, MODEL_META_NAME), "w") as f:
                 json.dump(model_meta, f)
         else:
-            raise MLSModelError(
-                f"{model_name} / {model_version} is already in PATH ({model_path})"
-            )
+            raise MLSModelError(f"{model_name} / {model_version} is already in PATH ({model_path})")
 
-        cmd_mkdir = (
-            f"hdfs dfs {EDD_OPTIONS if edd else ''} -mkdir -p {s3_path}"
-        )
+        cmd_mkdir = f"hdfs dfs {EDD_OPTIONS if edd else ''} -mkdir -p {s3_path}"
         cmd_load_model_to_s3 = f"hdfs dfs {EDD_OPTIONS if edd else ''} -put {'-f' if force else ''} {os.path.join(model_path, MODEL_TAR_NAME)} {s3_path}"
         cmd_load_meta_to_s3 = f"hdfs dfs {EDD_OPTIONS if edd else ''} -put {'-f' if force else ''} {os.path.join(model_path, MODEL_META_NAME)} {s3_path}"
 
-        process_mkdir = subprocess.Popen(
-            shlex.split(cmd_mkdir),
-            stdout=subprocess.PIPE,
-            stdin=subprocess.PIPE,
-        )
+        process_mkdir = subprocess.Popen(shlex.split(cmd_mkdir), stdout=subprocess.PIPE, stdin=subprocess.PIPE,)
         process_mkdir.wait()
         if process_mkdir.returncode != 0:
-            raise MLSModelError(
-                f"Making Directory on S3 ({s3_path}) is FAILED"
-            )
+            raise MLSModelError(f"Making Directory on S3 ({s3_path}) is FAILED")
 
         process_model_binary = subprocess.Popen(
-            shlex.split(cmd_load_model_to_s3),
-            stdout=subprocess.PIPE,
-            stdin=subprocess.PIPE,
+            shlex.split(cmd_load_model_to_s3), stdout=subprocess.PIPE, stdin=subprocess.PIPE,
         )
         process_model_binary.wait()
         if process_model_binary.returncode != 0:
@@ -195,15 +180,112 @@ def save_model(
             )
 
         process_model_meta = subprocess.Popen(
-            shlex.split(cmd_load_meta_to_s3),
-            stdout=subprocess.PIPE,
-            stdin=subprocess.PIPE,
+            shlex.split(cmd_load_meta_to_s3), stdout=subprocess.PIPE, stdin=subprocess.PIPE,
         )
         process_model_meta.wait()
         if process_model_meta.returncode != 0:
-            raise MLSModelError(
-                f"Load model_meta(meta.json) to S3 ({s3_path}) is FAILED"
-            )
+            raise MLSModelError(f"Load model_meta(meta.json) to S3 ({s3_path}) is FAILED")
 
     finally:
         shutil.rmtree(model_path, ignore_errors=True)
+
+
+def get_meta_table(meta_table: str, aws_env: AWSENV = AWSENV.STG.value) -> Dict[str, Any]:
+    """
+    Get a meta_table information
+    Args. :
+        - meta_table   :   (str) the name of meta_table
+        - aws_env      :   (str) AWS ENV in 'stg / prd / dev' (default is 'stg') (default : 'stg)
+    Returns :
+        - Dictionary value of meta_table (id / name / description / schema / items / created_at / updated_at)
+    """
+    assert type(meta_table) == str
+    assert type(aws_env) == str
+
+    url = f"https://ab-internal.{aws_env}.sktmls.com{MLS_META_API_URL}/{meta_table}"
+
+    if requests.get(url).json().get("results"):
+        return requests.get(url).json()["results"]
+    else:
+        raise MLSModelError(requests.get(url).json()["error"])
+
+
+def create_meta_table_item(
+    meta_table: str, item_name: str, item_dict: Dict[str, Any], aws_env: AWSENV = AWSENV.STG.value, force=False
+) -> None:
+    """
+    Get a meta_table information
+    Args. :
+        - meta_table   :   (str) the name of meta_table
+        - item_name    :   (str) the name of meta_item to be added
+        - item_dict    :   (dict) A dictionary type (item-value) value to upload to or update of the item
+        - aws_env      :   (str) AWS ENV in 'stg / prd / dev' (default is 'stg') (default : 'stg)
+        - force        :   (bool) Force to overwrite(update) the item_meta value if already exists
+    """
+    assert type(meta_table) == str
+    assert type(item_name) == str
+    assert type(item_dict) == dict
+    assert type(aws_env) == str
+
+    meta_table_info = get_meta_table(meta_table, aws_env)
+
+    update_yn = False
+    for value in meta_table_info.get("items"):
+        if value.get("name") == item_name:
+            update_yn = True
+            break
+
+    if update_yn and not force:
+        raise MLSModelError(f"{item_name} already exists.")
+
+    values_data = dict()
+    for field_name, field_spec in meta_table_info["schema"].items():
+        value = item_dict.get(field_name)
+        if value is None:
+            raise MLSModelError(f"{field_name} is missing.")
+
+        data_type = field_spec.get("type")
+        if (
+            (data_type == "number" and type(value) != int and type(value) != float)
+            or (data_type == "boolean" and type(value) != bool)
+            or (data_type == "string" and type(value) != str)
+        ):
+            raise MLSModelError(f"{field_name} must be {data_type} type.")
+
+        values_data[field_name] = value
+
+    request_data = dict()
+    request_data["name"] = item_name
+    request_data["values"] = values_data
+
+    if not update_yn:
+        url = f"https://ab-internal.{aws_env}.sktmls.com{MLS_META_API_URL}/{meta_table}/items"
+        result = requests.post(url, headers=HEADER, data=json.dumps(request_data))
+    else:
+        url = f"https://ab-internal.{aws_env}.sktmls.com{MLS_META_API_URL}/{meta_table}/items/{item_name}"
+        result = requests.put(url, headers=HEADER, data=json.dumps(request_data))
+
+    if result.json().get("error"):
+        raise MLSModelError(result.json().get("error"))
+
+
+def get_meta_table_item(meta_table: str, item_name: str, aws_env: AWSENV = AWSENV.STG.value) -> Dict[str, Any]:
+    """
+    Get a meta_table information
+    Args. :
+        - meta_table   :   (str) the name of meta_table
+        - item_name    :   (str) the name of meta_item to be added
+        - aws_env      :   (str) AWS ENV in 'stg / prd / dev' (default is 'stg') (default : 'stg)
+    Returns :
+        - A dictionary type (item-value) value of the item_meta
+    """
+    assert type(meta_table) == str
+    assert type(item_name) == str
+    assert type(aws_env) == str
+
+    url = f"https://ab-internal.{aws_env}.sktmls.com{MLS_META_API_URL}/{meta_table}/items/{item_name}"
+
+    if requests.get(url).json().get("results"):
+        return requests.get(url).json()["results"]["values"]
+    else:
+        raise MLSModelError(requests.get(url).json()["error"])
