@@ -137,6 +137,26 @@ save_model(model, model_name, model_version, aws_env, force)
 ```
 
 
+MLS *meta_table* & *meta_table_item* related methods
+```python
+from skt.mls import get_meta_table
+from skt.mls import create_meta_table_item
+from skt.mls import update_meta_table_item
+from skt.mls import get_meta_table_item
+
+# Get a meta_table info
+get_meta_table(meta_table_name, aws_env)
+# Create a meta_item
+create_meta_table_item(meta_table_name, item_name, item_dict, aws_env)
+# Update a meta_item
+create_meta_table_item(meta_table_name, item_name, item_dict, aws_env)
+# Get a meta_item
+get_meta_table_item(meta_table_name, item_name, aws_env)
+
+# For the detal, use ?{method} to get detailed info (ex. ?get_meta_table)
+```
+
+
 
 Use NES CLI
 ```bas
