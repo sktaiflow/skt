@@ -35,6 +35,7 @@ EDD_OPTIONS = """-Dfs.s3a.proxy.host=awsproxy.datalake.net \
 HEADER = {"Content-Type": "application/json"}
 AB_URL_PREFIX = "https://ab-internal"
 MLS_META_API_URL = "/api/v1/meta"
+MLS_MLMODEL_API_URL = "/api/v1/models"
 
 
 def set_model_name(comm_db, params):
@@ -322,3 +323,108 @@ def get_meta_table_item(meta_table: str, item_name: str, aws_env: AWSENV = AWSEN
         raise MLSModelError(response.get("error"))
     else:
         return results
+
+
+def get_ml_model(user: str, model_name: str, model_version: str, aws_env: AWSENV = AWSENV.STG.value) -> Dict[str, Any]:
+    """
+    Get a MLModel
+    Args. :
+        - user           :   (str) the name of a MLModel user
+        - model_name     :   (str) the name of MLModel
+        - model_version  :   (str) the version of MLModel
+        - aws_env        :   (str) AWS ENV in 'stg / prd / dev' (default is 'stg')
+    Returns :
+        - Dictionary value of MLModel
+    """
+    assert type(user) == str
+    assert type(model_name) == str
+    assert type(model_version) == str
+    assert type(aws_env) == str
+
+    url = AB_URL_PREFIX
+    if aws_env in (AWSENV.STG.value, AWSENV.DEV.value):
+        url = f"{url}.{aws_env}"
+    url = f"{url}.sktmls.com{MLS_MLMODEL_API_URL}/{model_name}/versions/{model_version}"
+
+    response = requests.get(url, params={"user": user}).json()
+    results = response.get("results")
+
+    if not results:
+        raise MLSModelError(f"No MLModel for user: {user} / model_name: {model_name} / model_version: {model_version}")
+    else:
+        return results[0]
+
+
+def get_ml_model_meta(
+    user: str, model_name: str, model_version: str, aws_env: AWSENV = AWSENV.STG.value
+) -> Dict[str, Any]:
+    """
+    Get a list of MLModel meta
+    Args. :
+        - user           :   (str) the name of a MLModel user
+        - model_name     :   (str) the name of MLModel
+        - model_version  :   (str) the version of MLModel
+        - aws_env        :   (str) AWS ENV in 'stg / prd / dev' (default is 'stg')
+    Returns :
+        - Dictionary value of model_meta
+    """
+    assert type(user) == str
+    assert type(model_name) == str
+    assert type(model_version) == str
+    assert type(aws_env) == str
+
+    url = AB_URL_PREFIX
+    if aws_env in (AWSENV.STG.value, AWSENV.DEV.value):
+        url = f"{url}.{aws_env}"
+    url = f"{url}.sktmls.com{MLS_MLMODEL_API_URL}/{model_name}/versions/{model_version}/meta"
+
+    response = requests.get(url, params={"user": user}).json()
+    results = response.get("results")
+
+    if not results:
+        raise MLSModelError(f"No MLModel for user: {user} / model_name: {model_name} / model_version: {model_version}")
+    else:
+        return results[0].get("model_meta")
+
+
+def create_ml_model_meta(
+    user: str,
+    model_name: str,
+    model_version: str,
+    model_meta_dict: Dict[str, Any],
+    aws_env: AWSENV = AWSENV.STG.value,
+    force=False,
+) -> None:
+    """
+    Create or Update model_meta
+    Args. :
+        - user            :   (str) the name of a MLModel user
+        - model_name      :   (str) the name of MLModel
+        - model_version   :   (str) the version of MLModel
+        - model_meta_dict :   (dict) the version of MLModel
+        - aws_env         :   (str) AWS ENV in 'stg / prd / dev' (default is 'stg')
+        - force           :   (bool) Force to overwrite existing model_meta (default : False)
+    """
+    assert type(model_name) == str
+    assert type(model_version) == str
+    assert type(model_meta_dict) == dict
+    assert type(aws_env) == str
+    assert type(force) == bool
+
+    model_meta = get_ml_model_meta(user, model_name, model_version, aws_env)
+
+    if not force:
+        for model_meta_key in model_meta.keys():
+            if model_meta_key in model_meta_dict.keys():
+                raise MLSModelError(f"model_meta '{model_meta_key}'' already exists. Use force=True to overwrite")
+
+    url = AB_URL_PREFIX
+    if aws_env in (AWSENV.STG.value, AWSENV.DEV.value):
+        url = f"{url}.{aws_env}"
+    url = f"{url}.sktmls.com{MLS_MLMODEL_API_URL}/{model_name}/versions/{model_version}/meta"
+
+    request_data = dict()
+    request_data["user"] = user
+    request_data["model_meta"] = model_meta_dict
+
+    requests.patch(url, headers=HEADER, data=json.dumps(request_data)).json()
