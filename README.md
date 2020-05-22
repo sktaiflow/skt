@@ -149,7 +149,7 @@ get_meta_table(meta_table_name, aws_env)
 # Create a meta_item
 create_meta_table_item(meta_table_name, item_name, item_dict, aws_env)
 # Update a meta_item
-create_meta_table_item(meta_table_name, item_name, item_dict, aws_env)
+update_meta_table_item(meta_table_name, item_name, item_dict, aws_env)
 # Get a meta_item
 get_meta_table_item(meta_table_name, item_name, aws_env)
 
