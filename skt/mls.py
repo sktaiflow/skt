@@ -277,7 +277,7 @@ def update_meta_table_item(
     meta_table_info = get_meta_table(meta_table, aws_env)
 
     values_data = dict()
-    for field_name, field_spec in meta_table_info['schema'].items():
+    for field_name, field_spec in meta_table_info["schema"].items():
         values_data[field_name] = item_dict.get(field_name)
 
     request_data = dict()
