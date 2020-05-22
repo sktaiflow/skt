@@ -33,6 +33,7 @@ EDD_OPTIONS = """-Dfs.s3a.proxy.host=awsproxy.datalake.net \
 
 
 HEADER = {"Content-Type": "application/json"}
+AB_URL_PREFIX = "https://ab-internal"
 MLS_META_API_URL = "/api/v1/meta"
 
 
@@ -162,8 +163,10 @@ def save_model(
             raise MLSModelError(f"{model_name} / {model_version} is already in PATH ({model_path})")
 
         cmd_mkdir = f"hdfs dfs {EDD_OPTIONS if edd else ''} -mkdir -p {s3_path}"
-        cmd_load_model_to_s3 = f"hdfs dfs {EDD_OPTIONS if edd else ''} -put {'-f' if force else ''} {os.path.join(model_path, MODEL_TAR_NAME)} {s3_path}"
-        cmd_load_meta_to_s3 = f"hdfs dfs {EDD_OPTIONS if edd else ''} -put {'-f' if force else ''} {os.path.join(model_path, MODEL_META_NAME)} {s3_path}"
+        cmd_load_model_to_s3 = f"hdfs dfs {EDD_OPTIONS if edd else ''} -put {'-f' if force else ''} \
+            {os.path.join(model_path, MODEL_TAR_NAME)} {s3_path}"
+        cmd_load_meta_to_s3 = f"hdfs dfs {EDD_OPTIONS if edd else ''} -put {'-f' if force else ''} \
+            {os.path.join(model_path, MODEL_META_NAME)} {s3_path}"
 
         process_mkdir = subprocess.Popen(shlex.split(cmd_mkdir), stdout=subprocess.PIPE, stdin=subprocess.PIPE,)
         process_mkdir.wait()
@@ -202,19 +205,25 @@ def get_meta_table(meta_table: str, aws_env: AWSENV = AWSENV.STG.value) -> Dict[
     assert type(meta_table) == str
     assert type(aws_env) == str
 
-    url = f"https://ab-internal.{aws_env}.sktmls.com{MLS_META_API_URL}/{meta_table}"
+    url = AB_URL_PREFIX
+    if aws_env in (AWSENV.STG.value, AWSENV.DEV.value):
+        url = f"{url}.{aws_env}"
+    url = f"{url}.sktmls.com{MLS_META_API_URL}/{meta_table}"
 
-    if requests.get(url).json().get("results"):
-        return requests.get(url).json()["results"]
+    response = requests.get(url).json()
+    results = response.get("results")
+
+    if not results:
+        raise MLSModelError(response.get("error"))
     else:
-        raise MLSModelError(requests.get(url).json()["error"])
+        return results
 
 
 def create_meta_table_item(
-    meta_table: str, item_name: str, item_dict: Dict[str, Any], aws_env: AWSENV = AWSENV.STG.value, force=False
+    meta_table: str, item_name: str, item_dict: Dict[str, Any], aws_env: AWSENV = AWSENV.STG.value
 ) -> None:
     """
-    Get a meta_table information
+    Create a meta_item
     Args. :
         - meta_table   :   (str) the name of meta_table
         - item_name    :   (str) the name of meta_item to be added
@@ -229,44 +238,62 @@ def create_meta_table_item(
 
     meta_table_info = get_meta_table(meta_table, aws_env)
 
-    update_yn = False
-    for value in meta_table_info.get("items"):
-        if value.get("name") == item_name:
-            update_yn = True
-            break
-
-    if update_yn and not force:
-        raise MLSModelError(f"{item_name} already exists.")
-
     values_data = dict()
     for field_name, field_spec in meta_table_info["schema"].items():
-        value = item_dict.get(field_name)
-        if value is None:
-            raise MLSModelError(f"{field_name} is missing.")
-
-        data_type = field_spec.get("type")
-        if (
-            (data_type == "number" and type(value) != int and type(value) != float)
-            or (data_type == "boolean" and type(value) != bool)
-            or (data_type == "string" and type(value) != str)
-        ):
-            raise MLSModelError(f"{field_name} must be {data_type} type.")
-
-        values_data[field_name] = value
+        values_data[field_name] = item_dict.get(field_name)
 
     request_data = dict()
     request_data["name"] = item_name
     request_data["values"] = values_data
 
-    if not update_yn:
-        url = f"https://ab-internal.{aws_env}.sktmls.com{MLS_META_API_URL}/{meta_table}/items"
-        result = requests.post(url, headers=HEADER, data=json.dumps(request_data))
-    else:
-        url = f"https://ab-internal.{aws_env}.sktmls.com{MLS_META_API_URL}/{meta_table}/items/{item_name}"
-        result = requests.put(url, headers=HEADER, data=json.dumps(request_data))
+    url = AB_URL_PREFIX
+    if aws_env in (AWSENV.STG.value, AWSENV.DEV.value):
+        url = f"{url}.{aws_env}"
+    url = f"{url}.sktmls.com{MLS_META_API_URL}/{meta_table}/items"
 
-    if result.json().get("error"):
-        raise MLSModelError(result.json().get("error"))
+    response = requests.post(url, headers=HEADER, data=json.dumps(request_data)).json()
+    results = response.get("results")
+
+    if not results:
+        raise MLSModelError(response.get("error"))
+
+
+def update_meta_table_item(
+    meta_table: str, item_name: str, item_dict: Dict[str, Any], aws_env: AWSENV = AWSENV.STG.value
+) -> None:
+    """
+    Update a meta_item
+    Args. :
+        - meta_table   :   (str) the name of meta_table
+        - item_name    :   (str) the name of meta_item to be added
+        - item_dict    :   (dict) A dictionary type (item-value) value to upload to or update of the item
+        - aws_env      :   (str) AWS ENV in 'stg / prd / dev' (default is 'stg') (default : 'stg)
+    """
+    assert type(meta_table) == str
+    assert type(item_name) == str
+    assert type(item_dict) == dict
+    assert type(aws_env) == str
+
+    meta_table_info = get_meta_table(meta_table, aws_env)
+
+    values_data = dict()
+    for field_name, field_spec in meta_table_info["schema"].items():
+        values_data[field_name] = item_dict.get(field_name)
+
+    request_data = dict()
+    request_data["name"] = item_name
+    request_data["values"] = values_data
+
+    url = AB_URL_PREFIX
+    if aws_env in (AWSENV.STG.value, AWSENV.DEV.value):
+        url = f"{url}.{aws_env}"
+    url = f"{url}.sktmls.com{MLS_META_API_URL}/{meta_table}/items/{item_name}"
+
+    response = requests.put(url, headers=HEADER, data=json.dumps(request_data)).json()
+    results = response.get("results")
+
+    if not results:
+        raise MLSModelError(response.get("error"))
 
 
 def get_meta_table_item(meta_table: str, item_name: str, aws_env: AWSENV = AWSENV.STG.value) -> Dict[str, Any]:
@@ -283,9 +310,15 @@ def get_meta_table_item(meta_table: str, item_name: str, aws_env: AWSENV = AWSEN
     assert type(item_name) == str
     assert type(aws_env) == str
 
-    url = f"https://ab-internal.{aws_env}.sktmls.com{MLS_META_API_URL}/{meta_table}/items/{item_name}"
+    url = AB_URL_PREFIX
+    if aws_env in (AWSENV.STG.value, AWSENV.DEV.value):
+        url = f"{url}.{aws_env}"
+    url = f"{url}.sktmls.com{MLS_META_API_URL}/{meta_table}/items/{item_name}"
 
-    if requests.get(url).json().get("results"):
-        return requests.get(url).json()["results"]["values"]
+    response = requests.get(url).json()
+    results = response.get("results")
+
+    if not results:
+        raise MLSModelError(response.get("error"))
     else:
-        raise MLSModelError(requests.get(url).json()["error"])
+        return results
