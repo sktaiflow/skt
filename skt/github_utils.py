@@ -29,9 +29,7 @@ class GithubUtil:
         data = json.dumps({"query": gql})
         headers = {"Authorization": f"Bearer {self._token}"}
 
-        return requests.post(
-            endpoint, data=data, headers=headers, proxies=self._proxies
-        ).json()
+        return requests.post(endpoint, data=data, headers=headers, proxies=self._proxies).json()
 
     def check_path_from_git(self, path) -> bool:
         return path.startswith("https://github.com/")

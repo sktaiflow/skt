@@ -51,11 +51,7 @@ def nes_execute(
 @click.command(context_settings=dict(help_option_names=["-h", "--help"]))
 @click.argument("input_notebook")
 @click.option(
-    "--parameters",
-    "-p",
-    nargs=2,
-    multiple=True,
-    help="Parameters to pass to the parameters cell.",
+    "--parameters", "-p", nargs=2, multiple=True, help="Parameters to pass to the parameters cell.",
 )
 def nes_cli(
     input_notebook, parameters,
@@ -63,8 +59,6 @@ def nes_cli(
     parameters_final = {}
     for name, value in parameters or []:
         parameters_final[name] = value
-    status, output_url = nes_execute(
-        input_notebook, parameters=parameters_final,
-    )
+    status, output_url = nes_execute(input_notebook, parameters=parameters_final,)
     print(f"output_url: {output_url}")
     print(f"status: {status}")

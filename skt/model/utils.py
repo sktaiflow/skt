@@ -4,12 +4,7 @@ from skt.ye import hive_to_pandas, slack_send
 
 # post_filter 이후, context_mapping 을 마친 post_filter_with_context_id Table 생성
 def context_mapping(
-    meta_table=None,
-    comm_db=None,
-    reco_type=None,
-    model_name=None,
-    dt=None,
-    feature_ym=None,
+    meta_table=None, comm_db=None, reco_type=None, model_name=None, dt=None, feature_ym=None,
 ):
 
     # 0. item_reco_predict_post_filter with impression 'Y' table LOAD
@@ -22,9 +17,7 @@ def context_mapping(
     and impression_yn = 'Y'
     """
     post_filter_with_y = hive_to_pandas(query)
-    print(
-        "------------------" + "predict_post_filter" + ' WITH "Y"' + " loaded"
-    )
+    print("------------------" + "predict_post_filter" + ' WITH "Y"' + " loaded")
 
     # 1+a. num(item_id_list)
     ITEM_ID_LIST = list(set(post_filter_with_y["prod_id"].values))
@@ -43,17 +36,10 @@ def context_mapping(
         """
         meta = hive_to_pandas(query)
         meta = meta.drop_duplicates()
-        print(
-            "------------------"
-            + "meta_table"
-            + ' WITH "ITEM_ID (PROD_ID)"'
-            + " loaded"
-        )
+        print("------------------" + "meta_table" + ' WITH "ITEM_ID (PROD_ID)"' + " loaded")
 
         CONTEXT_NUM = meta.shape[0]
-        CONTEXT_ID_DEFAULT = meta[meta["context_priority"] == "1"][
-            "context_id"
-        ].values[0]
+        CONTEXT_ID_DEFAULT = meta[meta["context_priority"] == "1"]["context_id"].values[0]
         CONTEXT_ID_LIST = tuple(meta["context_id"].values)
 
         # 3. default_setting
@@ -61,9 +47,7 @@ def context_mapping(
         print("------------------" + "CONTEXT_NUM : 1 (DEFAULT)")
 
         if CONTEXT_NUM == 1:
-            context_count_list = list(
-                Counter(list(post_filter_with_y["context_id"].values)).items()
-            )
+            context_count_list = list(Counter(list(post_filter_with_y["context_id"].values)).items())
             msg = (
                 "[CONTEXT-MAPPING-SUMMARY]"
                 + " - "
@@ -88,23 +72,12 @@ def context_mapping(
             # 4+a. for loop - overwrite mapping
             for i in range(CONTEXT_NUM - 1):
                 priority_num = i + 2
-                print(
-                    "------------------"
-                    + "CONTEXT_NUM : "
-                    + str(priority_num)
-                )
-                PRIORITY_CONTEXT_ID = meta[
-                    meta["context_priority"] == str(priority_num)
-                ]["context_id"].values[0]
+                print("------------------" + "CONTEXT_NUM : " + str(priority_num))
+                PRIORITY_CONTEXT_ID = meta[meta["context_priority"] == str(priority_num)]["context_id"].values[0]
                 post_filter_with_y.loc[
                     (
                         post_filter_with_y["svc_mgmt_num"].isin(
-                            list(
-                                df_context[
-                                    df_context["dimension"]
-                                    == PRIORITY_CONTEXT_ID
-                                ]["svc_mgmt_num"]
-                            )
+                            list(df_context[df_context["dimension"] == PRIORITY_CONTEXT_ID]["svc_mgmt_num"])
                         )
                     )
                     & (post_filter_with_y["prod_id"] == ITEM_ID),
@@ -112,25 +85,16 @@ def context_mapping(
                 ] = PRIORITY_CONTEXT_ID
 
             # 4+b. counter - context mapping statistics
-            context_count_list = list(
-                Counter(list(post_filter_with_y["context_id"].values)).items()
-            )
+            context_count_list = list(Counter(list(post_filter_with_y["context_id"].values)).items())
             msg = "[CONTEXT-MAPPING-SUMMARY]" + " - " + ITEM_ID
             for j in range(CONTEXT_NUM):
-                msg_ = (
-                    "\n"
-                    + str(context_count_list[j][0])
-                    + " : "
-                    + str(context_count_list[j][1])
-                )
+                msg_ = "\n" + str(context_count_list[j][0]) + " : " + str(context_count_list[j][1])
                 msg += msg_
 
         del meta
         del df_context
         # 5. Slack Report
-        slack_send(
-            text=msg, channel="#rec_modeling_alert", icon_emoji=":mag:"
-        )
+        slack_send(text=msg, channel="#rec_modeling_alert", icon_emoji=":mag:")
 
     # 6. return post_filter_with_y_with_context_id Table
     return post_filter_with_y

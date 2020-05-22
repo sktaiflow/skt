@@ -20,22 +20,13 @@ eda_looger = eda_logger.setLevel(logging.INFO)
 stream_hander = logging.StreamHandler(sys.stdout)
 stream_hander.setLevel(logging.DEBUG)
 
-formatter = logging.Formatter(
-    "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 stream_hander.setFormatter(formatter)
 eda_logger.addHandler(stream_hander)
 
 
 def numeric_eda_plot(
-    df,
-    feature_list,
-    label_col,
-    cols=2,
-    n_samples=-1,
-    plot_type="density",
-    stat_yn=False,
-    figsize=(7, 4),
+    df, feature_list, label_col, cols=2, n_samples=-1, plot_type="density", stat_yn=False, figsize=(7, 4),
 ):
     """
     Numeric feature에 대한 EDA Plot function
@@ -55,7 +46,8 @@ def numeric_eda_plot(
 
     Example :
         df = load_from_hive(conn, "select * from dumbo.aips_eda_samples")
-        fig = numeric_eda_plot(df, ['age','eqp_chg_cnt','real_arpu_bf_m1'], 'answer', cols = 3, n_samples = 10000, plot_type='density', stat_yn=True, figsize = (7,4))
+        fig = numeric_eda_plot(df, ['age','eqp_chg_cnt','real_arpu_bf_m1'], 'answer', cols = 3, n_samples = 10000,
+                               plot_type='density', stat_yn=True, figsize = (7,4))
         fig
     """
 
@@ -66,9 +58,7 @@ def numeric_eda_plot(
     assert plot_type in ["box", "density"]
 
     for feat in feature_list:
-        assert np.issubdtype(
-            df[feat], np.number
-        ), feat + " has %s type, should be numeric! " % (df[feat].dtype)
+        assert np.issubdtype(df[feat], np.number), feat + " has %s type, should be numeric! " % (df[feat].dtype)
 
     ##########################################################################
 
@@ -83,11 +73,7 @@ def numeric_eda_plot(
         temp_samples_df = []
         for k, v in label_cnt.items():
             label_cnt[k] = min(n_samples, v)
-            temp_samples_df.append(
-                df[df[label_col] == k].sample(
-                    n=label_cnt[k], random_state=777
-                )
-            )
+            temp_samples_df.append(df[df[label_col] == k].sample(n=label_cnt[k], random_state=777))
 
         df = pd.concat(temp_samples_df, axis=0)
 
@@ -106,9 +92,7 @@ def numeric_eda_plot(
     figheight = figsize[1] * rows
 
     h_margin = 0.3 + 0.2 * len(labels) if stat_yn else 0.3
-    fig, ax = plt.subplots(
-        nrows=rows, ncols=cols, figsize=(figwidth, figheight)
-    )
+    fig, ax = plt.subplots(nrows=rows, ncols=cols, figsize=(figwidth, figheight))
 
     color_choices = ["r", "b", "goldenrod", "black", "darkorange", "g"]
     stat_names = ["AVG", "MIN", "MAX", "1Q", "3Q"]
@@ -116,9 +100,7 @@ def numeric_eda_plot(
 
     plt.subplots_adjust(wspace=0.3, hspace=h_margin)
     if cols != 1 or rows != 1:
-        ax = (
-            ax.ravel()
-        )  # Ravel turns a matrix into a vector... easier to iterate
+        ax = ax.ravel()  # Ravel turns a matrix into a vector... easier to iterate
 
     ##########################################################################
     # density plot for each ax
@@ -148,27 +130,13 @@ def numeric_eda_plot(
                 # calculate simple stats
                 if stat_yn:
                     tmp_stats = [
-                        np.mean(
-                            orig_tmp_df[orig_tmp_df[label_col] == lb][col]
-                        ),
-                        np.min(
-                            orig_tmp_df[orig_tmp_df[label_col] == lb][col]
-                        ),
-                        np.max(
-                            orig_tmp_df[orig_tmp_df[label_col] == lb][col]
-                        ),
-                        np.quantile(
-                            orig_tmp_df[orig_tmp_df[label_col] == lb][col],
-                            0.25,
-                        ),
-                        np.quantile(
-                            orig_tmp_df[orig_tmp_df[label_col] == lb][col],
-                            0.75,
-                        ),
+                        np.mean(orig_tmp_df[orig_tmp_df[label_col] == lb][col]),
+                        np.min(orig_tmp_df[orig_tmp_df[label_col] == lb][col]),
+                        np.max(orig_tmp_df[orig_tmp_df[label_col] == lb][col]),
+                        np.quantile(orig_tmp_df[orig_tmp_df[label_col] == lb][col], 0.25,),
+                        np.quantile(orig_tmp_df[orig_tmp_df[label_col] == lb][col], 0.75,),
                     ]
-                    tmp_stats_text = " | ".join(
-                        [pattern % i for i in tmp_stats]
-                    )
+                    tmp_stats_text = " | ".join([pattern % i for i in tmp_stats])
                     stats.append("[{}] ".format(lb) + tmp_stats_text)
 
         elif plot_type == "box":
@@ -177,27 +145,13 @@ def numeric_eda_plot(
             if stat_yn:
                 for j, lb in enumerate(labels):
                     tmp_stats = [
-                        np.mean(
-                            orig_tmp_df[orig_tmp_df[label_col] == lb][col]
-                        ),
-                        np.min(
-                            orig_tmp_df[orig_tmp_df[label_col] == lb][col]
-                        ),
-                        np.max(
-                            orig_tmp_df[orig_tmp_df[label_col] == lb][col]
-                        ),
-                        np.quantile(
-                            orig_tmp_df[orig_tmp_df[label_col] == lb][col],
-                            0.25,
-                        ),
-                        np.quantile(
-                            orig_tmp_df[orig_tmp_df[label_col] == lb][col],
-                            0.75,
-                        ),
+                        np.mean(orig_tmp_df[orig_tmp_df[label_col] == lb][col]),
+                        np.min(orig_tmp_df[orig_tmp_df[label_col] == lb][col]),
+                        np.max(orig_tmp_df[orig_tmp_df[label_col] == lb][col]),
+                        np.quantile(orig_tmp_df[orig_tmp_df[label_col] == lb][col], 0.25,),
+                        np.quantile(orig_tmp_df[orig_tmp_df[label_col] == lb][col], 0.75,),
                     ]
-                    tmp_stats_text = " | ".join(
-                        [pattern % i for i in tmp_stats]
-                    )
+                    tmp_stats_text = " | ".join([pattern % i for i in tmp_stats])
                     stats.append("[{}] ".format(lb) + tmp_stats_text)
             temp_ax.set_ylabel("")
 
@@ -211,9 +165,7 @@ def numeric_eda_plot(
     return fig
 
 
-def categorical_eda_plot(
-    df, feature_list, label_col, cols=2, n_samples=-1, figsize=(7, 4)
-):
+def categorical_eda_plot(df, feature_list, label_col, cols=2, n_samples=-1, figsize=(7, 4)):
     """
     Categorical feature에 대한 EDA Plot function
 
@@ -232,7 +184,8 @@ def categorical_eda_plot(
     Example :
         Example :
         df = load_from_hive(conn, "select * from dumbo.aips_eda_samples")
-        fig = categorical_eda_plot(df, ['family_yn', 'dangol_yn','sex_cd'], 'answer', cols = 3, n_samples = 10000, figsize = (7,4))
+        fig = categorical_eda_plot(df, ['family_yn', 'dangol_yn','sex_cd'], 'answer', cols = 3,
+                                   n_samples = 10000, figsize = (7,4))
         fig
     """
 
@@ -241,10 +194,7 @@ def categorical_eda_plot(
     assert type(label_col) == str
     for feat in feature_list:
         tmp_count = df[feat].nunique()
-        assert tmp_count < 100, (
-            "you have %d unique values, it is not categorical value"
-            % (tmp_count)
-        )
+        assert tmp_count < 100, "you have %d unique values, it is not categorical value" % (tmp_count)
 
     ##########################################################################
 
@@ -256,11 +206,7 @@ def categorical_eda_plot(
         temp_samples_df = []
         for k, v in label_cnt.items():
             label_cnt[k] = min(n_samples, v)
-            temp_samples_df.append(
-                df[df[label_col] == k].sample(
-                    n=label_cnt[k], random_state=777
-                )
-            )
+            temp_samples_df.append(df[df[label_col] == k].sample(n=label_cnt[k], random_state=777))
 
         df = pd.concat(temp_samples_df, axis=0)
 
@@ -279,15 +225,11 @@ def categorical_eda_plot(
     figheight = figsize[1] * rows
 
     h_margin = 0.3
-    fig, ax = plt.subplots(
-        nrows=rows, ncols=cols, figsize=(figwidth, figheight)
-    )
+    fig, ax = plt.subplots(nrows=rows, ncols=cols, figsize=(figwidth, figheight))
 
     plt.subplots_adjust(wspace=0.3, hspace=h_margin)
     if cols != 1 or rows != 1:
-        ax = (
-            ax.ravel()
-        )  # Ravel turns a matrix into a vector... easier to iterate
+        ax = ax.ravel()  # Ravel turns a matrix into a vector... easier to iterate
 
     ##########################################################################
     # bar plot for each ax
@@ -307,12 +249,7 @@ def categorical_eda_plot(
         )
 
         sns.barplot(
-            x=label_col,
-            y="perc",
-            hue=col,
-            data=tmp_df,
-            dodge=False,
-            ax=temp_ax,
+            x=label_col, y="perc", hue=col, data=tmp_df, dodge=False, ax=temp_ax,
         )
         temp_ax.legend(title="")
 

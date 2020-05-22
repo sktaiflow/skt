@@ -129,11 +129,7 @@ def pandas_to_parquet(pandas_df, hdfs_path, spark):
 
 
 def slack_send(
-    text="This is default text",
-    username="SKT",
-    channel="#leavemealone",
-    icon_emoji=":large_blue_circle:",
-    blocks=None,
+    text="This is default text", username="SKT", channel="#leavemealone", icon_emoji=":large_blue_circle:", blocks=None,
 ):
     import requests
     from skt.vault_utils import get_secrets
@@ -155,12 +151,7 @@ def slack_send(
         "blocks": blocks,
         "icon_emoji": icon_emoji,
     }
-    r = requests.post(
-        "https://www.slack.com/api/chat.postMessage",
-        proxies=proxies,
-        headers=headers,
-        json=json_body,
-    )
+    r = requests.post("https://www.slack.com/api/chat.postMessage", proxies=proxies, headers=headers, json=json_body,)
     r.raise_for_status()
     if not r.json()["ok"]:
         raise Exception(r.json())
