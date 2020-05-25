@@ -2,7 +2,7 @@ import requests
 from skt.vault_utils import get_secrets
 
 
-DATA_CATALOG_SECRETS_NAME = 'data_catalog'
+DATA_CATALOG_SECRETS_NAME = "data_catalog"
 
 
 def get_sources():
