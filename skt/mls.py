@@ -325,7 +325,7 @@ def get_meta_table_item(meta_table: str, item_name: str, aws_env: AWSENV = AWSEN
         return results
 
 
-def meta_to_pandas(meta_table: str, aws_env: AWSENV = AWSENV.STG.value) -> Any:
+def meta_table_to_pandas(meta_table: str, aws_env: AWSENV = AWSENV.STG.value) -> Any:
     """
     Get a meta_table as pandas dataframe
     Args. :
@@ -344,7 +344,7 @@ def meta_to_pandas(meta_table: str, aws_env: AWSENV = AWSENV.STG.value) -> Any:
 
     response = requests.get(url).json()
 
-    if not response.get('results'):
+    if not response.get("results"):
         raise MLSModelError(f"No meta_table '{meta_table}' exists on AWS {aws_env}")
 
     items = response["results"]["items"]

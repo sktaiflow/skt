@@ -144,7 +144,7 @@ from skt.mls import create_meta_table_item
 from skt.mls import update_meta_table_item
 from skt.mls import get_meta_table_item
 from skt.mls import get_meta_table_item
-from stk.mls import pandas_to_meta
+from stk.mls import meta_table_to_pandas
 
 # Get a meta_table info
 get_meta_table(meta_table_name, aws_env)
@@ -155,7 +155,7 @@ update_meta_table_item(meta_table_name, item_name, item_dict, aws_env)
 # Get a meta_item
 get_meta_table_item(meta_table_name, item_name, aws_env)
 # Get a meta_table as pandas dataframe
-pandas_to_meta(meta_table_name, aws_env)
+meta_table_to_pandas(meta_table_name, aws_env)
 
 # For the detal, use ?{method} to get detailed info (ex. ?get_meta_table)
 ```
