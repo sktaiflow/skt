@@ -108,7 +108,9 @@ def save_model(
         )
 
     if not bool(re.search("^[A-Za-z0-9_]+$", model_version)):
-        raise MLSModelError("model_name should follow naming rule. MUST be in alphabet, number, underscore")
+        raise MLSModelError(
+            "model_name should follow naming rule. MUST be in alphabet, number, underscore"
+        )
 
     def check_model_library(model):
         if isinstance(model, lightgbm.Booster):
@@ -122,7 +124,9 @@ def save_model(
         if model_library == ModelLibrary.LIGHTGBM.value:
             return model.feature_name()
         elif model_library == ModelLibrary.XGBOOST.value:
-            if all(isinstance(s, str) for s in feature_list) and len(feature_list) == len(model.feature_importances_):
+            if all(isinstance(s, str) for s in feature_list) and len(
+                feature_list
+            ) == len(model.feature_importances_):
                 return feature_list
             else:
                 raise MLSModelError(
@@ -147,7 +151,8 @@ def save_model(
     }
 
     model_path = os.path.join(
-        MLS_MODEL_DIR, f"{aws_env}_{model_name}_{model_version}_{datetime.today().strftime('%Y%m%d_%H%M%S')}",
+        MLS_MODEL_DIR,
+        f"{aws_env}_{model_name}_{model_version}_{datetime.today().strftime('%Y%m%d_%H%M%S')}",
     )
     try:
         if not os.path.exists(os.path.join(model_path, MODEL_BINARY_NAME)):
@@ -161,7 +166,9 @@ def save_model(
             with open(os.path.join(model_path, MODEL_META_NAME), "w") as f:
                 json.dump(model_meta, f)
         else:
-            raise MLSModelError(f"{model_name} / {model_version} is already in PATH ({model_path})")
+            raise MLSModelError(
+                f"{model_name} / {model_version} is already in PATH ({model_path})"
+            )
 
         cmd_mkdir = f"hdfs dfs {EDD_OPTIONS if edd else ''} -mkdir -p {s3_path}"
         cmd_load_model_to_s3 = f"hdfs dfs {EDD_OPTIONS if edd else ''} -put {'-f' if force else ''} \
@@ -169,13 +176,17 @@ def save_model(
         cmd_load_meta_to_s3 = f"hdfs dfs {EDD_OPTIONS if edd else ''} -put {'-f' if force else ''} \
             {os.path.join(model_path, MODEL_META_NAME)} {s3_path}"
 
-        process_mkdir = subprocess.Popen(shlex.split(cmd_mkdir), stdout=subprocess.PIPE, stdin=subprocess.PIPE,)
+        process_mkdir = subprocess.Popen(
+            shlex.split(cmd_mkdir), stdout=subprocess.PIPE, stdin=subprocess.PIPE,
+        )
         process_mkdir.wait()
         if process_mkdir.returncode != 0:
             raise MLSModelError(f"Making Directory on S3 ({s3_path}) is FAILED")
 
         process_model_binary = subprocess.Popen(
-            shlex.split(cmd_load_model_to_s3), stdout=subprocess.PIPE, stdin=subprocess.PIPE,
+            shlex.split(cmd_load_model_to_s3),
+            stdout=subprocess.PIPE,
+            stdin=subprocess.PIPE,
         )
         process_model_binary.wait()
         if process_model_binary.returncode != 0:
@@ -184,17 +195,23 @@ def save_model(
             )
 
         process_model_meta = subprocess.Popen(
-            shlex.split(cmd_load_meta_to_s3), stdout=subprocess.PIPE, stdin=subprocess.PIPE,
+            shlex.split(cmd_load_meta_to_s3),
+            stdout=subprocess.PIPE,
+            stdin=subprocess.PIPE,
         )
         process_model_meta.wait()
         if process_model_meta.returncode != 0:
-            raise MLSModelError(f"Load model_meta(meta.json) to S3 ({s3_path}) is FAILED")
+            raise MLSModelError(
+                f"Load model_meta(meta.json) to S3 ({s3_path}) is FAILED"
+            )
 
     finally:
         shutil.rmtree(model_path, ignore_errors=True)
 
 
-def get_meta_table(meta_table: str, aws_env: AWSENV = AWSENV.STG.value) -> Dict[str, Any]:
+def get_meta_table(
+    meta_table: str, aws_env: AWSENV = AWSENV.STG.value
+) -> Dict[str, Any]:
     """
     Get a meta_table information
     Args. :
@@ -221,7 +238,10 @@ def get_meta_table(meta_table: str, aws_env: AWSENV = AWSENV.STG.value) -> Dict[
 
 
 def create_meta_table_item(
-    meta_table: str, item_name: str, item_dict: Dict[str, Any], aws_env: AWSENV = AWSENV.STG.value
+    meta_table: str,
+    item_name: str,
+    item_dict: Dict[str, Any],
+    aws_env: AWSENV = AWSENV.STG.value,
 ) -> None:
     """
     Create a meta_item
@@ -260,7 +280,10 @@ def create_meta_table_item(
 
 
 def update_meta_table_item(
-    meta_table: str, item_name: str, item_dict: Dict[str, Any], aws_env: AWSENV = AWSENV.STG.value
+    meta_table: str,
+    item_name: str,
+    item_dict: Dict[str, Any],
+    aws_env: AWSENV = AWSENV.STG.value,
 ) -> None:
     """
     Update a meta_item
@@ -297,7 +320,9 @@ def update_meta_table_item(
         raise MLSModelError(response.get("error"))
 
 
-def get_meta_table_item(meta_table: str, item_name: str, aws_env: AWSENV = AWSENV.STG.value) -> Dict[str, Any]:
+def get_meta_table_item(
+    meta_table: str, item_name: str, aws_env: AWSENV = AWSENV.STG.value
+) -> Dict[str, Any]:
     """
     Get a meta_table information
     Args. :
@@ -344,9 +369,9 @@ def meta_to_pandas(meta_table: str, aws_env: AWSENV = AWSENV.STG.value) -> Any:
 
     response = requests.get(url).json()
 
-    items = response['results']['items']
-    key = pd.DataFrame.from_records(items)['name']
-    values = pd.DataFrame.from_records(pd.DataFrame.from_records(items)['values'])
+    items = response["results"]["items"]
+    key = pd.DataFrame.from_records(items)["name"]
+    values = pd.DataFrame.from_records(pd.DataFrame.from_records(items)["values"])
 
     df = pd.concat([key, values], axis=1)
 
