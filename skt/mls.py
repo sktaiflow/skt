@@ -327,7 +327,7 @@ def get_meta_table_item(meta_table: str, item_name: str, aws_env: AWSENV = AWSEN
 
 def get_ml_model(user: str, model_name: str, model_version: str, aws_env: AWSENV = AWSENV.STG.value) -> Dict[str, Any]:
     """
-    Get a MLModel
+    Get an MLModel
     Args. :
         - user           :   (str) the name of a MLModel user
         - model_name     :   (str) the name of MLModel
@@ -387,16 +387,11 @@ def get_ml_model_meta(
         return results[0].get("model_meta")
 
 
-def create_ml_model_meta(
-    user: str,
-    model_name: str,
-    model_version: str,
-    model_meta_dict: Dict[str, Any],
-    aws_env: AWSENV = AWSENV.STG.value,
-    force=False,
+def update_ml_model_meta(
+    user: str, model_name: str, model_version: str, model_meta_dict: Dict[str, Any], aws_env: AWSENV = AWSENV.STG.value,
 ) -> None:
     """
-    Create or Update model_meta
+    Update(or Create) model_meta
     Args. :
         - user            :   (str) the name of a MLModel user
         - model_name      :   (str) the name of MLModel
@@ -412,11 +407,6 @@ def create_ml_model_meta(
     assert type(force) == bool
 
     model_meta = get_ml_model_meta(user, model_name, model_version, aws_env)
-
-    if not force:
-        for model_meta_key in model_meta.keys():
-            if model_meta_key in model_meta_dict.keys():
-                raise MLSModelError(f"model_meta '{model_meta_key}'' already exists. Use force=True to overwrite")
 
     url = AB_URL_PREFIX
     if aws_env in (AWSENV.STG.value, AWSENV.DEV.value):
