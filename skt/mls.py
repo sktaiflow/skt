@@ -344,6 +344,9 @@ def meta_to_pandas(meta_table: str, aws_env: AWSENV = AWSENV.STG.value) -> Any:
 
     response = requests.get(url).json()
 
+    if not response.get('results'):
+        raise MLSModelError(f"No meta_table '{meta_table}' exists on AWS {aws_env}")
+
     items = response["results"]["items"]
     key = pd.DataFrame.from_records(items)["name"]
     values = pd.DataFrame.from_records(pd.DataFrame.from_records(items)["values"])
