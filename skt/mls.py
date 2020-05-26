@@ -4,6 +4,7 @@ from enum import Enum
 
 import requests
 import json
+import pandas as pd
 import subprocess
 import shlex
 import os
@@ -220,7 +221,7 @@ def get_meta_table(meta_table: str, aws_env: AWSENV = AWSENV.STG.value) -> Dict[
 
 
 def create_meta_table_item(
-    meta_table: str, item_name: str, item_dict: Dict[str, Any], aws_env: AWSENV = AWSENV.STG.value
+    meta_table: str, item_name: str, item_dict: Dict[str, Any], aws_env: AWSENV = AWSENV.STG.value,
 ) -> None:
     """
     Create a meta_item
@@ -259,7 +260,7 @@ def create_meta_table_item(
 
 
 def update_meta_table_item(
-    meta_table: str, item_name: str, item_dict: Dict[str, Any], aws_env: AWSENV = AWSENV.STG.value
+    meta_table: str, item_name: str, item_dict: Dict[str, Any], aws_env: AWSENV = AWSENV.STG.value,
 ) -> None:
     """
     Update a meta_item
@@ -322,3 +323,34 @@ def get_meta_table_item(meta_table: str, item_name: str, aws_env: AWSENV = AWSEN
         raise MLSModelError(response.get("error"))
     else:
         return results
+
+
+def meta_table_to_pandas(meta_table: str, aws_env: AWSENV = AWSENV.STG.value) -> Any:
+    """
+    Get a meta_table as pandas dataframe
+    Args. :
+        - meta_table   :   (str) the name of meta_table
+        - aws_env      :   (str) AWS ENV in 'stg / prd / dev' (default is 'stg')
+    Returns :
+        - A Pandas dataframe type of the item_meta
+    """
+    assert type(meta_table) == str
+    assert type(aws_env) == str
+
+    url = AB_URL_PREFIX
+    if aws_env in (AWSENV.STG.value, AWSENV.DEV.value):
+        url = f"{url}.{aws_env}"
+    url = f"{url}.sktmls.com{MLS_META_API_URL}/{meta_table}"
+
+    response = requests.get(url).json()
+
+    if not response.get("results"):
+        raise MLSModelError(f"No meta_table '{meta_table}' exists on AWS {aws_env}")
+
+    items = response["results"]["items"]
+    key = pd.DataFrame.from_records(items)["name"]
+    values = pd.DataFrame.from_records(pd.DataFrame.from_records(items)["values"])
+
+    df = pd.concat([key, values], axis=1)
+
+    return df
