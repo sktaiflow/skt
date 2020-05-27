@@ -1,0 +1,58 @@
+name: "Test linter and formatting"
+
+on:
+  push:
+    branches:
+      - "*"
+      - "!master"
+      - "!develop"
+
+<<<<<<< HEAD
+jobs: 
+  test: 
+    name: 'flake8 and black formatting' 
+    runs-on: ubuntu-latest
+    strategy: 
+      matrix: 
+        python-version: [3.6, 3.7] 
+=======
+jobs:
+  test:
+    name: "flake8 and black formatting"
+    runs-on: ubuntu-18.04
+    strategy:
+      max-parallel: 4
+      matrix:
+        python-version: [3.6, 3.7]
+>>>>>>> ae3a483eca1bc5a48680c4e9f22fd0469322d9f1
+
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v2
+
+<<<<<<< HEAD
+    - name: 'Install dependencies' 
+      run: | 
+        python -m pip install --upgrade pip 
+        pip install tox
+      
+    - name: 'Test with tox'
+      # Run tox using the version of Python in `PATH`
+      run: tox -e py
+=======
+      - name: "Set up Python ${{ matrix.python-version }}"
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: "Install dependencies"
+        run: |
+          python -m pip install --upgrade pip 
+          pip install tox tox-gh-actions black
+
+      - name: "Test black formatter"
+        run: black --check --line-length 120 setup.py skt
+
+      - name: "Test with tox"
+        run: tox
+>>>>>>> ae3a483eca1bc5a48680c4e9f22fd0469322d9f1
