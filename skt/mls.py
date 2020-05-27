@@ -24,31 +24,27 @@ MLS_META_API_URL = "/api/v1/meta"
 MLS_MLMODEL_API_URL = "/api/v1/models"
 
 
-def set_model_name(comm_db, params, edd: bool = False):
+def set_model_name(comm_db, params):
     secret = get_secrets("mls")
     if comm_db[-3:] == "dev":  # stg
-        url = secret[f"ab_{'onprem_' if edd else ''}stg_url"]
-        url = f"{url}{MLS_COMPONENTS_API_URL}"
+        url = f"{secret['ab_stg_url']}{MLS_COMPONENTS_API_URL}"
     else:  # prd
-        url = secret[f"ab_{'onprem_' if edd else ''}prd_url"]
-        url = f"{url}{MLS_COMPONENTS_API_URL}"
+        url = f"{secret['ab_prd_url']}{MLS_COMPONENTS_API_URL}"
     requests.post(url, data=json.dumps(params))
 
 
-def get_recent_model_path(comm_db, model_key, edd: bool = False):
+def get_recent_model_path(comm_db, model_key):
     secret = get_secrets("mls")
     if comm_db[-3:] == "dev":  # stg
-        url = secret[f"ab_{'onprem_' if edd else ''}stg_url"]
-        url = f"{url}{MLS_COMPONENTS_API_URL}"
+        url = f"{secret['ab_stg_url']}{MLS_COMPONENTS_API_URL}"
     else:  # prd
-        url = secret[f"ab_{'onprem_' if edd else ''}prd_url"]
-        url = f"{url}{MLS_COMPONENTS_API_URL}"
+        url = f"{secret['ab_prd_url']}{MLS_COMPONENTS_API_URL}"
     return requests.get(f"{url}/latest").json()[model_key]
 
 
-def get_model_name(key, edd: bool = False):
-    url = get_secrets("mls")[f"ab_{'onprem_' if edd else ''}prd_url"]
-    url = f"{url}{MLS_COMPONENTS_API_URL}"
+def get_model_name(key):
+    secret = get_secrets("mls")
+    url = f"{secret['ab_prd_url']}{MLS_COMPONENTS_API_URL}"
     return requests.get(f"{url}/latest").json()[key]
 
 
