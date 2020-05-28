@@ -147,17 +147,36 @@ from skt.mls import get_meta_table_item
 from stk.mls import meta_table_to_pandas
 
 # Get a meta_table info
-get_meta_table(meta_table_name, aws_env)
+get_meta_table(meta_table_name, aws_env, edd)
 # Create a meta_item
-create_meta_table_item(meta_table_name, item_name, item_dict, aws_env)
+create_meta_table_item(meta_table_name, item_name, item_dict, aws_env, edd)
 # Update a meta_item
-update_meta_table_item(meta_table_name, item_name, item_dict, aws_env)
+update_meta_table_item(meta_table_name, item_name, item_dict, aws_env, edd)
 # Get a meta_item
-get_meta_table_item(meta_table_name, item_name, aws_env)
+get_meta_table_item(meta_table_name, item_name, aws_env, edd)
 # Get a meta_table as pandas dataframe
-meta_table_to_pandas(meta_table_name, aws_env)
+meta_table_to_pandas(meta_table_name, aws_env, edd)
 
 # For the detal, use ?{method} to get detailed info (ex. ?get_meta_table)
+# For the user of EDD, must set edd=True
+```
+
+MLS *model_meta* related methods  
+(*Need to set *user* for the ml_model)
+```python
+from skt.mls import get_ml_model
+from skt.mls import create_meta_table_item
+from skt.mls import update_meta_table_item
+
+# Get a ml_model
+get_ml_model(user, model_name, model_version, aws_env, edd)
+# Get a model_meta of ml_model
+get_ml_model_meta(user, model_name, model_version, aws_env, edd)
+# Update or Create meta_item(s)
+update_ml_model_meta(user, model_name, model_version, model_meta_dict, aws_env, edd)
+
+# For the detal, use ?{method} to get detailed info (ex. ?get_ml_model)
+# For the user of EDD, must set edd=True
 ```
 
 
