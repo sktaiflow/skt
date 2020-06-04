@@ -75,6 +75,9 @@ text = 'Hello'
 username = 'airflow'
 channel = '#leavemealone'
 slack_send(text=text, username=username, channel=channel)
+# Send dataframe as text
+df = pd.DataFrame(data={'col1': [1, 2], 'col2': [3, 4]})
+slack_send(text=df, username=username, channel=channel, dataframe=True)
 ```
 
 
@@ -144,7 +147,7 @@ from skt.mls import create_meta_table_item
 from skt.mls import update_meta_table_item
 from skt.mls import get_meta_table_item
 from skt.mls import get_meta_table_item
-from stk.mls import meta_table_to_pandas
+from skt.mls import meta_table_to_pandas
 
 # Get a meta_table info
 get_meta_table(meta_table_name, aws_env, edd)
