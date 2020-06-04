@@ -129,14 +129,20 @@ def pandas_to_parquet(pandas_df, hdfs_path, spark):
 
 
 def slack_send(
-    text="This is default text", username="SKT", channel="#leavemealone", icon_emoji=":large_blue_circle:", blocks=None, dataframe=False,
+    text="This is default text",
+    username="SKT",
+    channel="#leavemealone",
+    icon_emoji=":large_blue_circle:",
+    blocks=None,
+    dataframe=False,
 ):
     import requests
     from skt.vault_utils import get_secrets
 
     if dataframe:
         from tabulate import tabulate
-        text = "```" + tabulate(text, tablefmt="simple", headers='keys') + "```"
+
+        text = "```" + tabulate(text, tablefmt="simple", headers="keys") + "```"
 
     token = get_secrets("slack")["bot_token"]["airflow"]
     proxy = get_secrets("proxy")["proxy"]
