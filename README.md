@@ -144,7 +144,7 @@ from skt.mls import create_meta_table_item
 from skt.mls import update_meta_table_item
 from skt.mls import get_meta_table_item
 from skt.mls import get_meta_table_item
-from stk.mls import meta_table_to_pandas
+from skt.mls import meta_table_to_pandas
 
 # Get a meta_table info
 get_meta_table(meta_table_name, aws_env, edd)
