@@ -75,6 +75,9 @@ text = 'Hello'
 username = 'airflow'
 channel = '#leavemealone'
 slack_send(text=text, username=username, channel=channel)
+# Send dataframe as text
+df = pd.DataFrame(data={'col1': [1, 2], 'col2': [3, 4]})
+slack_send(text=df, username=username, channel=channel, dataframe=True)
 ```
 
 
