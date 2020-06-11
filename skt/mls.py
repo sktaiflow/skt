@@ -33,19 +33,19 @@ def set_model_name(comm_db, params):
     requests.post(url, data=json.dumps(params))
 
 
-def get_recent_model_path(comm_db, model_key):
+def get_recent_model_path(comm_db, model_key, user="reco"):
     secret = get_secrets("mls")
     if comm_db[-3:] == "dev":  # stg
         url = f"{secret['ab_stg_url']}{MLS_COMPONENTS_API_URL}"
     else:  # prd
         url = f"{secret['ab_prd_url']}{MLS_COMPONENTS_API_URL}"
-    return requests.get(f"{url}/latest").json()[model_key]
+    return requests.get(f"{url}/latest?user={user}").json()[model_key]
 
 
-def get_model_name(key):
+def get_model_name(key, user="reco"):
     secret = get_secrets("mls")
     url = f"{secret['ab_prd_url']}{MLS_COMPONENTS_API_URL}"
-    return requests.get(f"{url}/latest").json()[key]
+    return requests.get(f"{url}/latest?user={user}").json()[key]
 
 
 class ModelLibrary(Enum):
