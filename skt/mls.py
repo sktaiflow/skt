@@ -317,3 +317,62 @@ def update_ml_model_meta(
     request_data["model_meta"] = model_meta_dict
 
     requests.patch(url, headers=HEADER, data=json.dumps(request_data)).json()
+
+
+def pandas_to_meta_table(
+    method: str,
+    meta_table: str,
+    df: pd.DataFrame,
+    key: str,
+    values: list,
+    edd: bool = False,
+    aws_env: AWSENV = AWSENV.STG.value,
+) -> None:
+    """
+    Get a meta_table as pandas dataframe
+    Args. :
+        - method       :   (str) requests method 'put' or 'post'
+        - meta_table        :   (str) MLS meta table name
+        - df           :   (pd.DataFrame) input table
+        - key          :   (str) key column in dataframe
+        - values       :   (list) Dataframe columns for input
+        - edd          :   (bool) True if On-prem env is on EDD (default is False)
+        - aws_env      :   (str) AWS ENV in 'stg / prd' (default is 'stg')
+    """
+    assert type(aws_env) == str
+    assert type(method) == str
+    assert type(meta_table) == str
+    assert type(df) == pd.core.frame.DataFrame
+    assert type(key) == str
+    assert type(values) == list
+
+    url = get_secrets("mls")[f"ab_{'onprem_' if edd else ''}{aws_env}_url"]
+    url = f"{url}{MLS_META_API_URL}/{meta_table}/items"
+
+    def to_json(x):
+        insert_dict = {}
+        insert_dict["name"] = x[key]
+        insert_dict["values"] = {}
+
+        for value in values:
+            insert_dict["values"][value] = x[value]
+
+        return insert_dict
+
+    json_series = df.apply(lambda x: to_json(x), axis=1)
+
+    headers = {"Content-type": "application/json", "Accept": "application/json"}
+
+    for meta in json_series:
+        if method == "put":
+            tmp_url = url + "/" + meta["name"]
+            res = requests.put(tmp_url, data=json.dumps(meta), headers=headers)
+        elif method == "post":
+            res = requests.post(url, data=json.dumps(meta), headers=headers)
+        else:
+            raise MLSModelError("method should be 'put' or 'post'")
+
+        if res.status_code != 200:
+            raise MLSModelError(f"{res.status_code}, {res.reason}")
+
+    print(f"{method} meta table complete")
