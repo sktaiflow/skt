@@ -10,6 +10,17 @@ Resources are abstracted into package structure.
 ## Usage
 
 
+Hash and unhash
+```python
+from skt.lake import hash_s
+from skt.lake import unhash_s
+
+unhashed_list = ['0000000000']
+hashed_list = hash_s(unhashed_list)
+unhash_s(hashed_list)
+```
+
+
 Execute hive query without fetch result
 ```python
 from skt.ye import hive_execute
