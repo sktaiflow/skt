@@ -99,7 +99,6 @@ def create_meta_table_item(
         - item_name    :   (str) the name of meta_item to be added
         - item_dict    :   (dict) A dictionary type (item-value) value to upload to or update of the item
         - aws_env      :   (str) AWS ENV in 'stg / prd' (default is 'stg')
-        - force        :   (bool) Force to overwrite(update) the item_meta value if already exists
         - edd          :   (bool) True if On-prem env is on EDD (default is False)
     """
     assert type(meta_table) == str
@@ -301,7 +300,6 @@ def update_ml_model_meta(
         - model_version   :   (str) the version of MLModel
         - model_meta_dict :   (dict) the version of MLModel
         - aws_env         :   (str) AWS ENV in 'stg / prd' (default is 'stg')
-        - force           :   (bool) Force to overwrite existing model_meta (default : False)
         - edd             :   (bool) True if On-prem env is on EDD (default is False)
     """
     assert type(model_name) == str
@@ -329,10 +327,10 @@ def pandas_to_meta_table(
     aws_env: AWSENV = AWSENV.STG.value,
 ) -> None:
     """
-    Get a meta_table as pandas dataframe
+    Create or Update items of a meta_table from Pandas Dataframe
     Args. :
-        - method       :   (str) requests method 'put' or 'post'
-        - meta_table        :   (str) MLS meta table name
+        - method       :   (str) requests method 'create' or 'update'
+        - meta_table   :   (str) MLS meta table name
         - df           :   (pd.DataFrame) input table
         - key          :   (str) key column in dataframe
         - values       :   (list) Dataframe columns for input
@@ -361,18 +359,10 @@ def pandas_to_meta_table(
 
     json_series = df.apply(lambda x: to_json(x), axis=1)
 
-    headers = {"Content-type": "application/json", "Accept": "application/json"}
-
     for meta in json_series:
-        if method == "put":
-            tmp_url = url + "/" + meta["name"]
-            res = requests.put(tmp_url, data=json.dumps(meta), headers=headers)
-        elif method == "post":
-            res = requests.post(url, data=json.dumps(meta), headers=headers)
+        if method == 'create':
+            create_meta_table_item(meta_table, meta.get('name'), meta.get('values'), aws_env)
+        elif method == 'update':
+            update_meta_table_item(meta_table, meta.get('name'), meta.get('values'), aws_env)
         else:
-            raise MLSModelError("method should be 'put' or 'post'")
-
-        if res.status_code != 200:
-            raise MLSModelError(f"{res.status_code}, {res.reason}")
-
-    print(f"{method} meta table complete")
+            raise MLSModelError("method argument should be 'create' or 'update'")
