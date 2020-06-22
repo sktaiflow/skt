@@ -360,9 +360,9 @@ def pandas_to_meta_table(
     json_series = df.apply(lambda x: to_json(x), axis=1)
 
     for meta in json_series:
-        if method == 'create':
-            create_meta_table_item(meta_table, meta.get('name'), meta.get('values'), aws_env)
-        elif method == 'update':
-            update_meta_table_item(meta_table, meta.get('name'), meta.get('values'), aws_env)
+        if method == "create":
+            create_meta_table_item(meta_table, meta.get("name"), meta.get("values"), aws_env)
+        elif method == "update":
+            update_meta_table_item(meta_table, meta.get("name"), meta.get("values"), aws_env)
         else:
             raise MLSModelError("method argument should be 'create' or 'update'")
