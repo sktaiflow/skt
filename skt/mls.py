@@ -338,7 +338,7 @@ def pandas_to_meta_table(
         - aws_env      :   (str) AWS ENV in 'stg / prd' (default is 'stg')
     """
     assert type(aws_env) == str
-    assert type(method) == str
+    assert method in ["create", "update"]
     assert type(meta_table) == str
     assert type(df) == pd.core.frame.DataFrame
     assert type(key) == str
@@ -362,7 +362,5 @@ def pandas_to_meta_table(
     for meta in json_series:
         if method == "create":
             create_meta_table_item(meta_table, meta.get("name"), meta.get("values"), aws_env)
-        elif method == "update":
-            update_meta_table_item(meta_table, meta.get("name"), meta.get("values"), aws_env)
         else:
-            raise MLSModelError("method argument should be 'create' or 'update'")
+            update_meta_table_item(meta_table, meta.get("name"), meta.get("values"), aws_env)
