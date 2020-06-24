@@ -23,11 +23,12 @@ air = [
     "implicit==0.4.2",
     "tqdm==4.43.0",
     "matplotlib==3.2.1",
+    "mushroom_rl==1.4.0",
 ]
 
 setuptools.setup(
     name="skt",
-    version="0.1.57",
+    version="0.1.58",
     author="SKT",
     author_email="all@sktai.io",
     description="SKT package",
