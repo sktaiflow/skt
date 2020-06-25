@@ -56,6 +56,8 @@ setuptools.setup(
         "pycryptodome",
         "joblib==0.14.1",
         "tabulate>=0.8.7",
+        "pandas_gbq",
+        "google-cloud-bigquery-storage"
     ],
     entry_points={"console_scripts": ["nes = skt.nes:nes_cli"]},
     extras_require={"air": air},
