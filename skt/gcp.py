@@ -111,7 +111,7 @@ def get_spark_for_bigquery():
     return spark
 
 
-def gcp_credentials_decorator_for_spark_bigquery(func):
+def gcp_credentials_decorator(func):
     def decorated(*args, **kwargs):
         import os.path
         import tempfile
@@ -172,12 +172,12 @@ def _bq_table_to_df(dataset, table_name, col_list, partition=None, where=None):
     return df
 
 
-@gcp_credentials_decorator_for_spark_bigquery
+@gcp_credentials_decorator
 def bq_table_to_df(dataset, table_name, col_list, partition=None, where=None):
     return _bq_table_to_df(dataset, table_name, col_list, partition, where)
 
 
-@gcp_credentials_decorator_for_spark_bigquery
+@gcp_credentials_decorator
 def bq_table_to_pandas(dataset, table_name, col_list, partition=None, where=None):
     try:
         df = _bq_table_to_df(dataset, table_name, col_list, partition, where)
@@ -199,12 +199,12 @@ def _df_to_bq_table(df, dataset, table_name, partition=None, mode="overwrite"):
     ).option("table", table).option("temporaryGcsBucket", "mnoai-us").save(mode=mode)
 
 
-@gcp_credentials_decorator_for_spark_bigquery
+@gcp_credentials_decorator
 def df_to_bq_table(df, dataset, table_name, partition=None, mode="overwrite"):
     _df_to_bq_table(df, dataset, table_name, partition, mode)
 
 
-@gcp_credentials_decorator_for_spark_bigquery
+@gcp_credentials_decorator
 def pandas_to_bq_table(df, dataset, table_name, partition=None, mode="overwrite"):
     try:
         spark = get_spark_for_bigquery()
