@@ -29,6 +29,7 @@ def set_model_name(comm_db, params, user="reco"):
     else:  # prd
         url = f"{secret['ab_prd_url']}{MLS_COMPONENTS_API_URL}"
     requests.post(
+        url, json=params, headers={"Authorization": f"Basic {{{secret.get('user_token').get(user)}}}"},
     )
 
 
