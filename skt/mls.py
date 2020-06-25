@@ -3,7 +3,6 @@ from typing import Dict, Any
 from enum import Enum
 
 import requests
-import json
 import pandas as pd
 import os
 
@@ -18,7 +17,6 @@ S3_DEFAULT_PATH = get_secrets("mls")["s3_model_registry_path"]
 
 EDD_OPTIONS = get_secrets("mls")["edd_options"]
 
-HEADER = {"Content-Type": "application/json"}
 MLS_COMPONENTS_API_URL = "/api/v1/components"
 MLS_META_API_URL = "/api/v1/meta"
 MLS_MLMODEL_API_URL = "/api/v1/models"
@@ -31,9 +29,6 @@ def set_model_name(comm_db, params, user="reco"):
     else:  # prd
         url = f"{secret['ab_prd_url']}{MLS_COMPONENTS_API_URL}"
     requests.post(
-        url,
-        data=json.dumps(params),
-        headers={**{"Authorization": f"Basic {{{secret.get('user_token').get(user)}}}"}, **HEADER},
     )
 
 
@@ -139,7 +134,7 @@ def create_meta_table_item(
     url = get_secrets("mls")[f"ab_{'onprem_' if edd else ''}{aws_env}_url"]
     url = f"{url}{MLS_META_API_URL}/{meta_table}/items"
 
-    response = requests.post(url, headers=HEADER, data=json.dumps(request_data)).json()
+    response = requests.post(url, json=request_data).json()
     results = response.get("results")
 
     if not results:
@@ -176,7 +171,7 @@ def update_meta_table_item(
     url = get_secrets("mls")[f"ab_{'onprem_' if edd else ''}{aws_env}_url"]
     url = f"{url}{MLS_META_API_URL}/{meta_table}/items/{item_name}"
 
-    response = requests.put(url, headers=HEADER, data=json.dumps(request_data)).json()
+    response = requests.put(url, json=request_data).json()
     results = response.get("results")
 
     if not results:
@@ -334,7 +329,7 @@ def update_ml_model_meta(
     request_data["user"] = user
     request_data["model_meta"] = model_meta_dict
 
-    requests.patch(url, headers=HEADER, data=json.dumps(request_data)).json()
+    requests.patch(url, json=request_data).json()
 
 
 def pandas_to_meta_table(
