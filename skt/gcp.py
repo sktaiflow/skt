@@ -92,15 +92,16 @@ def get_spark_for_bigquery():
     from pyspark.sql import SparkSession
 
     spark = (
-        SparkSession.builder.config("spark.driver.memory", "32g")
-        .config("spark.executor.memory", "16g")
+        SparkSession.builder.config("spark.driver.memory", "6g")
+        .config("spark.executor.memory", "8g")
         .config("spark.shuffle.service.enabled", "true")
         .config("spark.dynamicAllocation.enabled", "true")
         .config("spark.dynamicAllocation.maxExecutors", "200")
         .config("spark.driver.maxResultSize", "16g")
         .config("spark.rpc.message.maxSize", "2000")
         .config("spark.executor.memoryOverhead", "2000")
-        .config("spark.sql.execution.arrow.enabled", "true")
+        .config("spark.port.maxRetries", "128")
+        .config("spark.sql.execution.arrow.enabled", "false")
         .config("spark.jars", "gs://external_libs/spark/jars/spark-bigquery-with-dependencies_2.11-0.13.1-beta.jar",)
         .config("spark.executorEnv.ARROW_PRE_0_15_IPC_FORMAT", "1")
         .config("spark.yarn.appMasterEnv.ARROW_PRE_0_15_IPC_FORMAT", "1")
