@@ -19,33 +19,53 @@ S3_DEFAULT_PATH = get_secrets("mls")["s3_model_registry_path"]
 EDD_OPTIONS = get_secrets("mls")["edd_options"]
 
 HEADER = {"Content-Type": "application/json"}
-MLS_COMPONENTS_API_URL = "/v1/components"
+MLS_COMPONENTS_API_URL = "/api/v1/components"
 MLS_META_API_URL = "/api/v1/meta"
 MLS_MLMODEL_API_URL = "/api/v1/models"
 
 
-def set_model_name(comm_db, params):
+def set_model_name(comm_db, params, user="reco"):
     secret = get_secrets("mls")
     if comm_db[-3:] == "dev":  # stg
         url = f"{secret['ab_stg_url']}{MLS_COMPONENTS_API_URL}"
     else:  # prd
         url = f"{secret['ab_prd_url']}{MLS_COMPONENTS_API_URL}"
-    requests.post(url, data=json.dumps(params))
+    requests.post(
+        url,
+        data=json.dumps(params),
+        headers={**{"Authorization": f"Basic {{{secret.get('user_token').get(user)}}}"}, **HEADER},
+    )
+
+
+def get_all_recent_model_path(comm_db, user="reco"):
+    secret = get_secrets("mls")
+    if comm_db[-3:] == "dev":  # stg
+        url = f"{secret['ab_stg_url']}{MLS_COMPONENTS_API_URL}"
+    else:  # prd
+        url = f"{secret['ab_prd_url']}{MLS_COMPONENTS_API_URL}"
+
+    response = (
+        requests.get(url, headers={"Authorization": f"Basic {{{secret.get('user_token').get(user)}}}"})
+        .json()
+        .get("results")
+    )
+
+    results = {}
+    for component in response:
+        if component.get("is_latest"):
+            results[component.get("name")] = component.get("info")
+
+    return results
 
 
 def get_recent_model_path(comm_db, model_key, user="reco"):
-    secret = get_secrets("mls")
-    if comm_db[-3:] == "dev":  # stg
-        url = f"{secret['ab_stg_url']}{MLS_COMPONENTS_API_URL}"
-    else:  # prd
-        url = f"{secret['ab_prd_url']}{MLS_COMPONENTS_API_URL}"
-    return requests.get(f"{url}/latest?user={user}").json()[model_key]
+    results = get_all_recent_model_path(comm_db, user)
+    return results.get(model_key)
 
 
 def get_model_name(key, user="reco"):
-    secret = get_secrets("mls")
-    url = f"{secret['ab_prd_url']}{MLS_COMPONENTS_API_URL}"
-    return requests.get(f"{url}/latest?user={user}").json()[key]
+    results = get_all_recent_model_path("prd", user)
+    return results.get(key)
 
 
 class ModelLibrary(Enum):
