@@ -192,8 +192,8 @@ def bq_table_to_df(dataset, table_name, col_list, partition=None, where=None):
     return _bq_table_to_df(dataset, table_name, col_list, partition, where)
 
 
-def bq_table_to_parquet(output_dir, mode="overwrite")
-    bq_table_to_df(dataset, table_name, col_list, partition=None, where=None).write.mode("overwrite").parquet(output_dir)
+def bq_table_to_parquet(dataset, table_name, output_dir, col_list="*", partition=None, where=None, mode="overwrite"):
+    bq_table_to_df(dataset, table_name, col_list, partition=partition, where=where).write.mode(mode).parquet(output_dir)
 
 
 def bq_table_to_pandas(dataset, table_name, col_list="*", partition=None, where=None):
@@ -224,6 +224,16 @@ def _df_to_bq_table(df, dataset, table_name, partition=None, mode="overwrite"):
 @gcp_credentials_decorator
 def df_to_bq_table(df, dataset, table_name, partition=None, mode="overwrite"):
     _df_to_bq_table(df, dataset, table_name, partition, mode)
+
+
+@gcp_credentials_decorator
+def parquet_to_bq_table(parquet_dir, dataset, table_name, partition=None, mode="overwrite"):
+    try:
+        spark = get_spark_for_bigquery()
+        df = spark.read.format("parquet").load(parquet_dir)
+        _df_to_bq_table(df, dataset, table_name, partition, mode)
+    finally:
+        spark.stop()
 
 
 @gcp_credentials_decorator
