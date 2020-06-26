@@ -283,7 +283,7 @@ def get_user_data_access(user_name, start_date=None, end_date=None, timeseries=F
             column_list = list(map(lambda each: each["target"], response))
 
             result.append(
-                {"inputs": inputs, "outputs": outputs, "columns": column_list, "start_time": each_query["sort"][0],}
+                {"inputs": inputs, "outputs": outputs, "columns": column_list, "start_time": each_query["sort"][0]}
             )
         else:
             inputs = each_query["_source"].get("inputs", []) or []
@@ -311,9 +311,7 @@ def get_user_data_access(user_name, start_date=None, end_date=None, timeseries=F
         return {"tables": list(table_dict.keys()), "columns": list(column_dict.keys())}
 
 
-def get_table_top_n_tables(
-    n, resource_type="*", start_date=None, end_date=None,
-):
+def get_table_top_n_tables(n, resource_type="*", start_date=None, end_date=None):
     lineage_secrets = get_secrets(DATA_LINEAGE_SECRETS_NAME)
 
     params = {"top_n": n, "start_date": start_date, "end_date": end_date}
