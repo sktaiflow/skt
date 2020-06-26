@@ -126,13 +126,11 @@ def _get_partition_filter(dataset, table_name, partition):
 @gcp_credentials_decorator
 def bq_to_pandas(query, project_id="sktaic-datahub"):
     import pandas as pd
+
     configuration = {"query": {"useQueryCache": True}}
     return pd.read_gbq(
-        query=query,
-        project_id=project_id,
-        dialect="standard",
-        use_bqstorage_api=True,
-        configuration=configuration)
+        query=query, project_id=project_id, dialect="standard", use_bqstorage_api=True, configuration=configuration
+    )
 
 
 def get_spark_for_bigquery():
