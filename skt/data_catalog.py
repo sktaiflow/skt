@@ -202,21 +202,12 @@ def get_user_queries(user_name, start_date=None, end_date=None, **kwargs):
     es_sort = [{"start_time": order}]
     es_limit = min(100, limit)
 
-    params = {
-        "user_name": user_name,
-        "limit": es_limit,
-        "sort": json.dumps(es_sort)
-    }
+    params = {"user_name": user_name, "limit": es_limit, "sort": json.dumps(es_sort)}
 
     gte = start_date or (datetime.datetime.now() - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
     lt = end_date or datetime.datetime.now().strftime("%Y-%m-%d")
 
-    range_filter = {
-        "start_time": {
-            "gte": gte,
-            "lt": lt
-        }
-    }
+    range_filter = {"start_time": {"gte": gte, "lt": lt}}
 
     params["range_filter"] = json.dumps(range_filter)
 
@@ -251,18 +242,13 @@ def get_user_data_access(user_name, start_date=None, end_date=None, timeseries=F
         "user_name": user_name,
         "sort": json.dumps(es_sort),
         "limit": es_limit,
-        "fields": json.dumps(["inputs", "outputs"])
+        "fields": json.dumps(["inputs", "outputs"]),
     }
 
     gte = start_date or (datetime.datetime.now() - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
     lt = end_date or datetime.datetime.now().strftime("%Y-%m-%d")
 
-    range_filter = {
-        "start_time": {
-            "gte": gte,
-            "lt": lt
-        }
-    }
+    range_filter = {"start_time": {"gte": gte, "lt": lt}}
 
     params["range_filter"] = json.dumps(range_filter)
 
@@ -297,12 +283,7 @@ def get_user_data_access(user_name, start_date=None, end_date=None, timeseries=F
             column_list = list(map(lambda each: each["target"], response))
 
             result.append(
-                {
-                    "inputs": inputs,
-                    "outputs": outputs,
-                    "columns": column_list,
-                    "start_time": each_query["sort"][0],
-                }
+                {"inputs": inputs, "outputs": outputs, "columns": column_list, "start_time": each_query["sort"][0],}
             )
         else:
             inputs = each_query["_source"].get("inputs", []) or []
@@ -330,14 +311,12 @@ def get_user_data_access(user_name, start_date=None, end_date=None, timeseries=F
         return {"tables": list(table_dict.keys()), "columns": list(column_dict.keys())}
 
 
-def get_table_top_n_tables(n, resource_type="*", start_date=None, end_date=None, ):
+def get_table_top_n_tables(
+    n, resource_type="*", start_date=None, end_date=None,
+):
     lineage_secrets = get_secrets(DATA_LINEAGE_SECRETS_NAME)
 
-    params = {
-        "top_n": n,
-        "start_date": start_date,
-        "end_date": end_date
-    }
+    params = {"top_n": n, "start_date": start_date, "end_date": end_date}
 
     response = requests.get(lineage_secrets["url_prd"] + "/relationships/queries/top_n/tables", params=params).json()
 
@@ -347,11 +326,7 @@ def get_table_top_n_tables(n, resource_type="*", start_date=None, end_date=None,
 def get_table_top_n_columns(n, resource_type="*", start_date=None, end_date=None):
     lineage_secrets = get_secrets(DATA_LINEAGE_SECRETS_NAME)
 
-    params = {
-        "top_n": n,
-        "start_date": start_date,
-        "end_date": end_date
-    }
+    params = {"top_n": n, "start_date": start_date, "end_date": end_date}
 
     response = requests.get(lineage_secrets["url_prd"] + "/relationships/queries/top_n/columns", params=params).json()
 
