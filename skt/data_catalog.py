@@ -1,3 +1,4 @@
+import datetime
 import json
 import os
 
@@ -59,6 +60,7 @@ def get_query_detail(source, query_id):
 def search_table_by_name(name, **kwargs):
     secrets = get_secrets(DATA_CATALOG_SECRETS_NAME)
     kwargs["name"] = name
+
     return requests.get(f"{secrets['url_prd']}/v1/search/tables", params=kwargs).json()
 
 
@@ -83,7 +85,7 @@ def search_column_by_name(name, **kwargs):
     return requests.get(f"{secrets['url_prd']}/v1/search/columns", params=kwargs).json()
 
 
-def search_bigquery_queries_by_table_id(table_id, **kwargs):
+def search_queries_by_table_id(table_id, **kwargs):
     limit = kwargs.get("limit", 100)
     fuzziness = kwargs.get("fuzziness", "AUTO")
     operator = kwargs.get("operator", "and")
@@ -124,7 +126,7 @@ def search_bigquery_queries_by_table_id(table_id, **kwargs):
     return requests.get(secrets["url_prd"] + "/v1/search/processes", params=params).json()
 
 
-def search_bigquery_queries_by_column(table_id, column_name, **kwargs):
+def search_queries_by_column(table_id, column_name, **kwargs):
     limit = kwargs.get("limit", 100)
     fuzziness = kwargs.get("fuzziness", "AUTO")
     operator = kwargs.get("operator", "and")
@@ -172,7 +174,7 @@ def search_bigquery_queries_by_column(table_id, column_name, **kwargs):
             }
 
             relationship_list = requests.get(
-                lineage_secrets["url_prd"] + "/relationships/bigquery/queries/columns/" + max_score_column_id,
+                lineage_secrets["url_prd"] + "/relationships/queries/resource/columns/" + max_score_column_id,
                 params=params,
             ).json()
 
@@ -190,64 +192,33 @@ def search_bigquery_queries_by_column(table_id, column_name, **kwargs):
     return result
 
 
-def search_bigquery_queries_by_user_name(user_name, **kwargs):
-    limit = kwargs.get("limit", 100)
-    fuzziness = kwargs.get("fuzziness", "AUTO")
-    operator = kwargs.get("operator", "and")
-    offset = kwargs.get("offset", None)
-    fields = kwargs.get("fields", None)
-    must = kwargs.get("must", None)
-    sort = kwargs.get("sort", "desc")
-    start_date = kwargs.get("start_date", None)
-    end_date = kwargs.get("end_date", None)
-
+def get_user_queries(user_name, start_date=None, end_date=None, **kwargs):
     secrets = get_secrets(DATA_CATALOG_SECRETS_NAME)
 
-    es_sort = [{"start_time": sort}]
+    default_order = "asc" if (start_date or end_date) else "desc"
+    order = kwargs.get("sort", default_order)
+    limit = kwargs.get("limit", 100)
+
+    es_sort = [{"start_time": order}]
+    es_limit = min(100, limit)
 
     params = {
         "user_name": user_name,
-        "limit": limit,
-        "fuzziness": fuzziness,
-        "offset": offset,
-        "operator": operator,
-        "fields": fields,
-        "must": must,
-        "sort": json.dumps(es_sort),
+        "limit": es_limit,
+        "sort": json.dumps(es_sort)
     }
 
-    if start_date or end_date:
-        range_filter = {"range": {"start_time": {}}}
+    gte = start_date or (datetime.datetime.now() - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+    lt = end_date or datetime.datetime.now().strftime("%Y-%m-%d")
 
-        if start_date:
-            range_filter["range"]["start_time"]["gte"] = start_date
+    range_filter = {
+        "start_time": {
+            "gte": gte,
+            "lt": lt
+        }
+    }
 
-        if end_date:
-            range_filter["range"]["start_time"]["lt"] = end_date
-
-        params["range_filter"] = json.dumps(range_filter)
-
-    return requests.get(secrets["url_prd"] + "/v1/search/processes", params=params).json()
-
-
-def get_user_data_access_in_bigquery(username, start_date, end_date, timeseries=False, **kwargs):
-    secrets = get_secrets(DATA_CATALOG_SECRETS_NAME)
-    lineage_secrets = get_secrets(DATA_LINEAGE_SECRETS_NAME)
-
-    es_sort = [{"start_time": "asc"}]
-
-    params = {"user_name": username, "sort": json.dumps(es_sort), "fields": json.dumps(["inputs", "outputs"])}
-
-    if start_date or end_date:
-        range_filter = {"range": {"start_time": {}}}
-
-        if start_date:
-            range_filter["range"]["start_time"]["gte"] = start_date
-
-        if end_date:
-            range_filter["range"]["start_time"]["lt"] = end_date
-
-        params["range_filter"] = json.dumps(range_filter)
+    params["range_filter"] = json.dumps(range_filter)
 
     total_queries = []
 
@@ -256,7 +227,53 @@ def get_user_data_access_in_bigquery(username, start_date, end_date, timeseries=
     total_queries.extend(response["user_name"]["hits"])
     total = response["user_name"]["total"]["value"]
 
-    while total > len(total_queries):
+    while total > len(total_queries) and limit < len(total_queries):
+        params["offset"] = json.dumps(total_queries[-1]["sort"])
+
+        response = requests.get(secrets["url_prd"] + "/v1/search/processes", params=params).json()
+        total_queries.extend(response["user_name"]["hits"])
+
+    return total_queries
+
+
+def get_user_data_access(user_name, start_date=None, end_date=None, timeseries=False, **kwargs):
+    secrets = get_secrets(DATA_CATALOG_SECRETS_NAME)
+    lineage_secrets = get_secrets(DATA_LINEAGE_SECRETS_NAME)
+
+    default_order = "asc" if (start_date or end_date) else "desc"
+    order = kwargs.get("sort", default_order)
+    limit = kwargs.get("limit", 1000)
+
+    es_sort = [{"start_time": order}]
+    es_limit = min(1000, limit)
+
+    params = {
+        "user_name": user_name,
+        "sort": json.dumps(es_sort),
+        "limit": es_limit,
+        "fields": json.dumps(["inputs", "outputs"])
+    }
+
+    gte = start_date or (datetime.datetime.now() - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+    lt = end_date or datetime.datetime.now().strftime("%Y-%m-%d")
+
+    range_filter = {
+        "start_time": {
+            "gte": gte,
+            "lt": lt
+        }
+    }
+
+    params["range_filter"] = json.dumps(range_filter)
+
+    total_queries = []
+
+    response = requests.get(secrets["url_prd"] + "/v1/search/processes", params=params).json()
+
+    total_queries.extend(response["user_name"]["hits"])
+    total = response["user_name"]["total"]["value"]
+
+    while total > len(total_queries) and limit < len(total_queries):
         params["offset"] = json.dumps(total_queries[-1]["sort"])
 
         response = requests.get(secrets["url_prd"] + "/v1/search/processes", params=params).json()
@@ -271,34 +288,35 @@ def get_user_data_access_in_bigquery(username, start_date, end_date, timeseries=
         query_id = each_query["_id"]
 
         if timeseries:
-            table_list = []
-            table_list.extend(each_query["_source"]["inputs"])
-            table_list.extend(each_query["_source"]["outputs"])
+            inputs = each_query["_source"].get("inputs", [])
+            outputs = each_query["_source"].get("outputs", [])
 
             response = requests.get(
-                lineage_secrets["url_prd"] + f"/relationships/bigquery/queries/query/{query_id}/columns", params=params
+                lineage_secrets["url_prd"] + f"/relationships/queries/query/{query_id}/columns", params=params
             ).json()
             column_list = list(map(lambda each: each["target"], response))
 
             result.append(
                 {
-                    "inputs": each_query["_source"]["inputs"],
-                    "outputs": each_query["_source"]["outputs"],
+                    "inputs": inputs,
+                    "outputs": outputs,
                     "columns": column_list,
                     "start_time": each_query["sort"][0],
                 }
             )
         else:
-            for each in each_query["_source"]["inputs"]:
+            inputs = each_query["_source"].get("inputs", []) or []
+            outputs = each_query["_source"].get("outputs", []) or []
+            for each in inputs:
                 if each not in table_dict:
                     table_dict[each] = 1
 
-            for each in each_query["_source"]["outputs"]:
+            for each in outputs:
                 if each not in table_dict:
                     table_dict[each] = 1
 
             response = requests.get(
-                lineage_secrets["url_prd"] + f"/relationships/bigquery/queries/query/{query_id}/columns", params=params
+                lineage_secrets["url_prd"] + f"/relationships/queries/query/{query_id}/columns", params=params
             ).json()
             column_list = list(map(lambda each: each["target"], response))
 
@@ -310,3 +328,31 @@ def get_user_data_access_in_bigquery(username, start_date, end_date, timeseries=
         return result
     else:
         return {"tables": list(table_dict.keys()), "columns": list(column_dict.keys())}
+
+
+def get_table_top_n_tables(n, resource_type="*", start_date=None, end_date=None, ):
+    lineage_secrets = get_secrets(DATA_LINEAGE_SECRETS_NAME)
+
+    params = {
+        "top_n": n,
+        "start_date": start_date,
+        "end_date": end_date
+    }
+
+    response = requests.get(lineage_secrets["url_prd"] + "/relationships/queries/top_n/tables", params=params).json()
+
+    return response
+
+
+def get_table_top_n_columns(n, resource_type="*", start_date=None, end_date=None):
+    lineage_secrets = get_secrets(DATA_LINEAGE_SECRETS_NAME)
+
+    params = {
+        "top_n": n,
+        "start_date": start_date,
+        "end_date": end_date
+    }
+
+    response = requests.get(lineage_secrets["url_prd"] + "/relationships/queries/top_n/columns", params=params).json()
+
+    return response
