@@ -192,6 +192,10 @@ def bq_table_to_df(dataset, table_name, col_list, partition=None, where=None):
     return _bq_table_to_df(dataset, table_name, col_list, partition, where)
 
 
+def bq_table_to_parquet(output_dir, mode="overwrite")
+    bq_table_to_df(dataset, table_name, col_list, partition=None, where=None).write.mode("overwrite").parquet(output_dir)
+
+
 def bq_table_to_pandas(dataset, table_name, col_list="*", partition=None, where=None):
     col_list_str = ", ".join(col_list) if isinstance(col_list, list) else col_list
     query = f"SELECT {col_list_str} FROM {dataset}.{table_name} "
