@@ -46,10 +46,7 @@ def get_all_recent_model_path(comm_db, user="reco"):
         .get("results")
     )
 
-    results = {}
-    for component in response:
-        if component.get("is_latest"):
-            results[component.get("name")] = component.get("info")
+    results = {component.get("name"): component.get("info") for component in response if component.get("is_latest")}
 
     return results
 
