@@ -24,11 +24,12 @@ air = [
     "tqdm==4.43.0",
     "matplotlib==3.2.1",
     "mushroom_rl==1.4.0",
+    "pytorch-widedeep==0.3.7"
 ]
 
 setuptools.setup(
     name="skt",
-    version="0.1.60",
+    version="0.1.61",
     author="SKT",
     author_email="all@sktai.io",
     description="SKT package",
