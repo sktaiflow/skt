@@ -23,6 +23,7 @@ air = [
     "implicit==0.4.2",
     "tqdm==4.43.0",
     "matplotlib==3.2.1",
+    "mushroom_rl==1.4.0",
 ]
 
 setuptools.setup(
@@ -55,6 +56,8 @@ setuptools.setup(
         "pycryptodome",
         "joblib==0.14.1",
         "tabulate>=0.8.7",
+        "pandas_gbq",
+        "google-cloud-bigquery-storage",
     ],
     entry_points={"console_scripts": ["nes = skt.nes:nes_cli"]},
     extras_require={"air": air},

@@ -10,6 +10,17 @@ Resources are abstracted into package structure.
 ## Usage
 
 
+Hash and unhash
+```python
+from skt.lake import hash_s
+from skt.lake import unhash_s
+
+unhashed_list = ['0000000000']
+hashed_list = hash_s(unhashed_list)
+unhash_s(hashed_list)
+```
+
+
 Execute hive query without fetch result
 ```python
 from skt.ye import hive_execute
@@ -61,10 +72,10 @@ Work with spark-bigquery-connector
 ```python
 # SELECT
 from skt.gcp import bq_table_to_pandas 
-pandas_df = bq_table_to_pandas('dataset', 'table_name', ['col_1', 'col_2'], '2020-01-01', 'svc_mgmt_num is not null')
+pandas_df = bq_table_to_pandas("dataset", "table_name", ["col_1", "col_2"], "2020-01-01", "svc_mgmt_num is not null")
 # INSERT 
 from skt.gcp import pandas_to_bq_table
-pandas_to_bq_table(pandas_df, 'dataset', 'table_name', '2020-03-01')
+pandas_to_bq_table(pandas_df, "dataset", "table_name", "2020-03-01")
 ```
 
 

@@ -3,7 +3,6 @@ from typing import Dict, Any
 from enum import Enum
 
 import requests
-import json
 import pandas as pd
 import os
 
@@ -18,34 +17,48 @@ S3_DEFAULT_PATH = get_secrets("mls")["s3_model_registry_path"]
 
 EDD_OPTIONS = get_secrets("mls")["edd_options"]
 
-HEADER = {"Content-Type": "application/json"}
-MLS_COMPONENTS_API_URL = "/v1/components"
+MLS_COMPONENTS_API_URL = "/api/v1/components"
 MLS_META_API_URL = "/api/v1/meta"
 MLS_MLMODEL_API_URL = "/api/v1/models"
 
 
-def set_model_name(comm_db, params):
+def set_model_name(comm_db, params, user="reco"):
     secret = get_secrets("mls")
     if comm_db[-3:] == "dev":  # stg
         url = f"{secret['ab_stg_url']}{MLS_COMPONENTS_API_URL}"
     else:  # prd
         url = f"{secret['ab_prd_url']}{MLS_COMPONENTS_API_URL}"
-    requests.post(url, data=json.dumps(params))
+    requests.post(
+        url, json=params, headers={"Authorization": f"Basic {{{secret.get('user_token').get(user)}}}"},
+    )
 
 
-def get_recent_model_path(comm_db, model_key):
+def get_all_recent_model_path(comm_db, user="reco"):
     secret = get_secrets("mls")
     if comm_db[-3:] == "dev":  # stg
         url = f"{secret['ab_stg_url']}{MLS_COMPONENTS_API_URL}"
     else:  # prd
         url = f"{secret['ab_prd_url']}{MLS_COMPONENTS_API_URL}"
-    return requests.get(f"{url}/latest").json()[model_key]
+
+    response = (
+        requests.get(url, headers={"Authorization": f"Basic {{{secret.get('user_token').get(user)}}}"})
+        .json()
+        .get("results")
+    )
+
+    results = {component.get("name"): component.get("info") for component in response if component.get("is_latest")}
+
+    return results
 
 
-def get_model_name(key):
-    secret = get_secrets("mls")
-    url = f"{secret['ab_prd_url']}{MLS_COMPONENTS_API_URL}"
-    return requests.get(f"{url}/latest").json()[key]
+def get_recent_model_path(comm_db, model_key, user="reco"):
+    results = get_all_recent_model_path(comm_db, user)
+    return results.get(model_key)
+
+
+def get_model_name(key, user="reco"):
+    results = get_all_recent_model_path("prd", user)
+    return results.get(key)
 
 
 class ModelLibrary(Enum):
@@ -99,7 +112,6 @@ def create_meta_table_item(
         - item_name    :   (str) the name of meta_item to be added
         - item_dict    :   (dict) A dictionary type (item-value) value to upload to or update of the item
         - aws_env      :   (str) AWS ENV in 'stg / prd' (default is 'stg')
-        - force        :   (bool) Force to overwrite(update) the item_meta value if already exists
         - edd          :   (bool) True if On-prem env is on EDD (default is False)
     """
     assert type(meta_table) == str
@@ -120,7 +132,7 @@ def create_meta_table_item(
     url = get_secrets("mls")[f"ab_{'onprem_' if edd else ''}{aws_env}_url"]
     url = f"{url}{MLS_META_API_URL}/{meta_table}/items"
 
-    response = requests.post(url, headers=HEADER, data=json.dumps(request_data)).json()
+    response = requests.post(url, json=request_data).json()
     results = response.get("results")
 
     if not results:
@@ -157,7 +169,7 @@ def update_meta_table_item(
     url = get_secrets("mls")[f"ab_{'onprem_' if edd else ''}{aws_env}_url"]
     url = f"{url}{MLS_META_API_URL}/{meta_table}/items/{item_name}"
 
-    response = requests.put(url, headers=HEADER, data=json.dumps(request_data)).json()
+    response = requests.put(url, json=request_data).json()
     results = response.get("results")
 
     if not results:
@@ -301,7 +313,6 @@ def update_ml_model_meta(
         - model_version   :   (str) the version of MLModel
         - model_meta_dict :   (dict) the version of MLModel
         - aws_env         :   (str) AWS ENV in 'stg / prd' (default is 'stg')
-        - force           :   (bool) Force to overwrite existing model_meta (default : False)
         - edd             :   (bool) True if On-prem env is on EDD (default is False)
     """
     assert type(model_name) == str
@@ -316,4 +327,53 @@ def update_ml_model_meta(
     request_data["user"] = user
     request_data["model_meta"] = model_meta_dict
 
-    requests.patch(url, headers=HEADER, data=json.dumps(request_data)).json()
+    requests.patch(url, json=request_data).json()
+
+
+def pandas_to_meta_table(
+    method: str,
+    meta_table: str,
+    df: pd.DataFrame,
+    key: str,
+    values: list,
+    edd: bool = False,
+    aws_env: AWSENV = AWSENV.STG.value,
+) -> None:
+    """
+    Create or Update items of a meta_table from Pandas Dataframe
+    Args. :
+        - method       :   (str) requests method 'create' or 'update'
+        - meta_table   :   (str) MLS meta table name
+        - df           :   (pd.DataFrame) input table
+        - key          :   (str) key column in dataframe
+        - values       :   (list) Dataframe columns for input
+        - edd          :   (bool) True if On-prem env is on EDD (default is False)
+        - aws_env      :   (str) AWS ENV in 'stg / prd' (default is 'stg')
+    """
+    assert type(aws_env) == str
+    assert method in ["create", "update"]
+    assert type(meta_table) == str
+    assert type(df) == pd.core.frame.DataFrame
+    assert type(key) == str
+    assert type(values) == list
+
+    url = get_secrets("mls")[f"ab_{'onprem_' if edd else ''}{aws_env}_url"]
+    url = f"{url}{MLS_META_API_URL}/{meta_table}/items"
+
+    def to_json(x):
+        insert_dict = {}
+        insert_dict["name"] = x[key]
+        insert_dict["values"] = {}
+
+        for value in values:
+            insert_dict["values"][value] = x[value]
+
+        return insert_dict
+
+    json_series = df.apply(lambda x: to_json(x), axis=1)
+
+    for meta in json_series:
+        if method == "create":
+            create_meta_table_item(meta_table, meta.get("name"), meta.get("values"), aws_env)
+        else:
+            update_meta_table_item(meta_table, meta.get("name"), meta.get("values"), aws_env)
