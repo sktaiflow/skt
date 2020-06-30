@@ -24,7 +24,7 @@ air = [
     "tqdm==4.43.0",
     "matplotlib==3.2.1",
     "mushroom_rl==1.4.0",
-    "pytorch-widedeep==0.3.7"
+    "pytorch-widedeep==0.3.7",
 ]
 
 setuptools.setup(
