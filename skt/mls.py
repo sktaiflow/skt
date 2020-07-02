@@ -25,10 +25,10 @@ MLS_MLMODEL_API_URL = "/api/v1/models"
 def set_model_name(comm_db, params, user="reco", edd: bool = False):
     secret = get_secrets("mls")
     if comm_db[-3:] == "dev":  # stg
-        url = secret["ab_stg_url"] if edd else secret["ab_onprem_stg_url"]
+        url = secret["ab_onprem_stg_url"] if edd else secret["ab_stg_url"]
         url = f"{url}{MLS_COMPONENTS_API_URL}"
     else:  # prd
-        url = secret["ab_prd_url"] if edd else secret["ab_onprem_prd_url"]
+        url = secret["ab_onprem_prd_url"] if edd else secret["ab_prd_url"]
         url = f"{url}{MLS_COMPONENTS_API_URL}"
     requests.post(
         url, json=params, headers={"Authorization": f"Basic {{{secret.get('user_token').get(user)}}}"},
@@ -38,10 +38,10 @@ def set_model_name(comm_db, params, user="reco", edd: bool = False):
 def get_all_recent_model_path(comm_db, user="reco", edd: bool = False):
     secret = get_secrets("mls")
     if comm_db[-3:] == "dev":  # stg
-        url = secret["ab_stg_url"] if edd else secret["ab_onprem_stg_url"]
+        url = secret["ab_onprem_stg_url"] if edd else secret["ab_stg_url"]
         url = f"{url}{MLS_COMPONENTS_API_URL}"
     else:  # prd
-        url = secret["ab_prd_url"] if edd else secret["ab_onprem_prd_url"]
+        url = secret["ab_onprem_prd_url"] if edd else secret["ab_prd_url"]
         url = f"{url}{MLS_COMPONENTS_API_URL}"
 
     response = (
