@@ -22,23 +22,27 @@ MLS_META_API_URL = "/api/v1/meta"
 MLS_MLMODEL_API_URL = "/api/v1/models"
 
 
-def set_model_name(comm_db, params, user="reco"):
+def set_model_name(comm_db, params, user="reco", edd: bool = False):
     secret = get_secrets("mls")
     if comm_db[-3:] == "dev":  # stg
-        url = f"{secret['ab_stg_url']}{MLS_COMPONENTS_API_URL}"
+        url = secret["ab_onprem_stg_url"] if edd else secret["ab_stg_url"]
+        url = f"{url}{MLS_COMPONENTS_API_URL}"
     else:  # prd
-        url = f"{secret['ab_prd_url']}{MLS_COMPONENTS_API_URL}"
+        url = secret["ab_onprem_prd_url"] if edd else secret["ab_prd_url"]
+        url = f"{url}{MLS_COMPONENTS_API_URL}"
     requests.post(
         url, json=params, headers={"Authorization": f"Basic {{{secret.get('user_token').get(user)}}}"},
     )
 
 
-def get_all_recent_model_path(comm_db, user="reco"):
+def get_all_recent_model_path(comm_db, user="reco", edd: bool = False):
     secret = get_secrets("mls")
     if comm_db[-3:] == "dev":  # stg
-        url = f"{secret['ab_stg_url']}{MLS_COMPONENTS_API_URL}"
+        url = secret["ab_onprem_stg_url"] if edd else secret["ab_stg_url"]
+        url = f"{url}{MLS_COMPONENTS_API_URL}"
     else:  # prd
-        url = f"{secret['ab_prd_url']}{MLS_COMPONENTS_API_URL}"
+        url = secret["ab_onprem_prd_url"] if edd else secret["ab_prd_url"]
+        url = f"{url}{MLS_COMPONENTS_API_URL}"
 
     response = (
         requests.get(url, headers={"Authorization": f"Basic {{{secret.get('user_token').get(user)}}}"})
@@ -51,13 +55,13 @@ def get_all_recent_model_path(comm_db, user="reco"):
     return results
 
 
-def get_recent_model_path(comm_db, model_key, user="reco"):
-    results = get_all_recent_model_path(comm_db, user)
+def get_recent_model_path(comm_db, model_key, user="reco", edd: bool = False):
+    results = get_all_recent_model_path(comm_db, user, edd)
     return results.get(model_key)
 
 
-def get_model_name(key, user="reco"):
-    results = get_all_recent_model_path("prd", user)
+def get_model_name(key, user="reco", edd: bool = False):
+    results = get_all_recent_model_path("prd", user, edd)
     return results.get(key)
 
 
