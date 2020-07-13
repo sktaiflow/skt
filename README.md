@@ -157,8 +157,8 @@ from skt.mls import get_meta_table
 from skt.mls import create_meta_table_item
 from skt.mls import update_meta_table_item
 from skt.mls import get_meta_table_item
-from skt.mls import get_meta_table_item
 from skt.mls import meta_table_to_pandas
+from skt.mls import pandas_to_meta_table
 
 # Get a meta_table info
 get_meta_table(meta_table_name, aws_env, edd)
@@ -170,6 +170,9 @@ update_meta_table_item(meta_table_name, item_name, item_dict, aws_env, edd)
 get_meta_table_item(meta_table_name, item_name, aws_env, edd)
 # Get a meta_table as pandas dataframe
 meta_table_to_pandas(meta_table_name, aws_env, edd)
+# Update pandas dataframe to meta_table
+pandas_to_meta_table(method, meta_table_name, dataframe, key, values, aws_env, edd)
+
 
 # For the detal, use ?{method} to get detailed info (ex. ?get_meta_table)
 # For the user of EDD, must set edd=True
