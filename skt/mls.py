@@ -24,6 +24,7 @@ MLS_MLMODEL_API_URL = "/api/v1/models"
 
 def set_model_name(comm_db, params, user="reco", edd: bool = False):
     secret = get_secrets("mls")
+    token = secret.get("user_token").get(user)
     if comm_db[-3:] == "dev":  # stg
         url = secret["ab_onprem_stg_url"] if edd else secret["ab_stg_url"]
         url = f"{url}{MLS_COMPONENTS_API_URL}"
@@ -31,12 +32,13 @@ def set_model_name(comm_db, params, user="reco", edd: bool = False):
         url = secret["ab_onprem_prd_url"] if edd else secret["ab_prd_url"]
         url = f"{url}{MLS_COMPONENTS_API_URL}"
     requests.post(
-        url, json=params, headers={"Authorization": f"Basic {{{secret.get('user_token').get(user)}}}"},
+        url, json=params, headers={"Authorization": f"Basic {{{token}}}"},
     )
 
 
 def get_all_recent_model_path(comm_db, user="reco", edd: bool = False):
     secret = get_secrets("mls")
+    token = secret.get("user_token").get(user)
     if comm_db[-3:] == "dev":  # stg
         url = secret["ab_onprem_stg_url"] if edd else secret["ab_stg_url"]
         url = f"{url}{MLS_COMPONENTS_API_URL}"
@@ -44,11 +46,7 @@ def get_all_recent_model_path(comm_db, user="reco", edd: bool = False):
         url = secret["ab_onprem_prd_url"] if edd else secret["ab_prd_url"]
         url = f"{url}{MLS_COMPONENTS_API_URL}"
 
-    response = (
-        requests.get(url, headers={"Authorization": f"Basic {{{secret.get('user_token').get(user)}}}"})
-        .json()
-        .get("results")
-    )
+    response = requests.get(url, headers={"Authorization": f"Basic {{{token}}}"}).json().get("results")
 
     results = {component.get("name"): component.get("info") for component in response if component.get("is_latest")}
 
@@ -98,11 +96,12 @@ def get_meta_table(
     assert type(aws_env) == str
 
     secret = get_secrets("mls")
+    token = secret.get("user_token").get(user)
 
     url = get_secrets("mls")[f"ab_{'onprem_' if edd else ''}{aws_env}_url"]
     url = f"{url}{MLS_META_API_URL}/{meta_table}"
 
-    response = requests.get(url, headers={"Authorization": f"Basic {{{secret.get('user_token').get(user)}}}"}).json()
+    response = requests.get(url, headers={"Authorization": f"Basic {{{token}}}"}).json()
     results = response.get("results")
 
     if not results:
@@ -135,6 +134,7 @@ def create_meta_table_item(
     assert type(aws_env) == str
 
     secret = get_secrets("mls")
+    token = secret.get("user_token").get(user)
 
     meta_table_info = get_meta_table(meta_table, aws_env, user, edd)
 
@@ -149,9 +149,7 @@ def create_meta_table_item(
     url = get_secrets("mls")[f"ab_{'onprem_' if edd else ''}{aws_env}_url"]
     url = f"{url}{MLS_META_API_URL}/{meta_table}/meta_items"
 
-    response = requests.post(
-        url, json=request_data, headers={"Authorization": f"Basic {{{secret.get('user_token').get(user)}}}"}
-    ).json()
+    response = requests.post(url, json=request_data, headers={"Authorization": f"Basic {{{token}}}"}).json()
     results = response.get("results")
 
     if not results:
@@ -182,6 +180,7 @@ def update_meta_table_item(
     assert type(aws_env) == str
 
     secret = get_secrets("mls")
+    token = secret.get("user_token").get(user)
 
     meta_table_info = get_meta_table(meta_table, aws_env, user, edd)
 
@@ -196,9 +195,7 @@ def update_meta_table_item(
     url = get_secrets("mls")[f"ab_{'onprem_' if edd else ''}{aws_env}_url"]
     url = f"{url}{MLS_META_API_URL}/{meta_table}/meta_items/{item_name}"
 
-    response = requests.put(
-        url, json=request_data, headers={"Authorization": f"Basic {{{secret.get('user_token').get(user)}}}"}
-    ).json()
+    response = requests.put(url, json=request_data, headers={"Authorization": f"Basic {{{token}}}"}).json()
     results = response.get("results")
 
     if not results:
@@ -224,11 +221,12 @@ def get_meta_table_item(
     assert type(aws_env) == str
 
     secret = get_secrets("mls")
+    token = secret.get("user_token").get(user)
 
     url = get_secrets("mls")[f"ab_{'onprem_' if edd else ''}{aws_env}_url"]
     url = f"{url}{MLS_META_API_URL}/{meta_table}/meta_items/{item_name}"
 
-    response = requests.get(url, headers={"Authorization": f"Basic {{{secret.get('user_token').get(user)}}}"}).json()
+    response = requests.get(url, headers={"Authorization": f"Basic {{{token}}}"}).json()
     results = response.get("results")
 
     if not results:
@@ -252,11 +250,12 @@ def meta_table_to_pandas(meta_table: str, aws_env: AWSENV = AWSENV.STG.value, us
     assert type(aws_env) == str
 
     secret = get_secrets("mls")
+    token = secret.get("user_token").get(user)
 
     url = get_secrets("mls")[f"ab_{'onprem_' if edd else ''}{aws_env}_url"]
     url = f"{url}{MLS_META_API_URL}/{meta_table}"
 
-    response = requests.get(url, headers={"Authorization": f"Basic {{{secret.get('user_token').get(user)}}}"}).json()
+    response = requests.get(url, headers={"Authorization": f"Basic {{{token}}}"}).json()
 
     if not response.get("results"):
         raise MLSModelError(f"No meta_table '{meta_table}' exists on AWS {aws_env}")
