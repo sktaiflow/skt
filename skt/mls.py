@@ -18,7 +18,7 @@ S3_DEFAULT_PATH = get_secrets("mls")["s3_model_registry_path"]
 EDD_OPTIONS = get_secrets("mls")["edd_options"]
 
 MLS_COMPONENTS_API_URL = "/api/v1/components"
-MLS_META_API_URL = "/api/v1/meta"
+MLS_META_API_URL = "/api/v1/meta_tables"
 MLS_MLMODEL_API_URL = "/api/v1/models"
 
 
