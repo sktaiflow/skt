@@ -99,7 +99,16 @@ def hive_get_result(query):
     return result
 
 
-def hive_to_pandas(query):
+def hive_to_pandas(query, scale=0):
+    if scale == 1:
+        import pandas
+
+        conn = get_hive_conn()
+        df = pandas.read_sql(query, conn)
+        df.info()
+        conn.close()
+        return df
+
     import uuid
 
     tmp_id = str(uuid.uuid4()).replace("-", "_")
@@ -108,10 +117,14 @@ def hive_to_pandas(query):
     c = conn.cursor()
     c.execute("set parquet.column.index.access=false")
     c.execute(ctas)
+    hdfs = get_hdfs_conn()
+    table_path = hdfs.ls(f"/warehouse/tablespace/managed/hive/dumbo.db/{tmp_id}")[0]
+    hdfs.close()
+    df = parquet_to_pandas(table_path)
+    c.execute(f"DROP TABLE dumbo.{tmp_id}")
     c.close()
     conn.close()
-    table_path = f"/warehouse/tablespace/managed/hive/dumbo.db/{tmp_id}/delta_0000001_0000001_0000"
-    return parquet_to_pandas(table_path)
+    return df
 
 
 def parquet_to_pandas(hdfs_path):
