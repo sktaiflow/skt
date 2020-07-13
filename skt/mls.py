@@ -18,12 +18,13 @@ S3_DEFAULT_PATH = get_secrets("mls")["s3_model_registry_path"]
 EDD_OPTIONS = get_secrets("mls")["edd_options"]
 
 MLS_COMPONENTS_API_URL = "/api/v1/components"
-MLS_META_API_URL = "/api/v1/meta"
+MLS_META_API_URL = "/api/v1/meta_tables"
 MLS_MLMODEL_API_URL = "/api/v1/models"
 
 
 def set_model_name(comm_db, params, user="reco", edd: bool = False):
     secret = get_secrets("mls")
+    token = secret.get("user_token").get(user)
     if comm_db[-3:] == "dev":  # stg
         url = secret["ab_onprem_stg_url"] if edd else secret["ab_stg_url"]
         url = f"{url}{MLS_COMPONENTS_API_URL}"
@@ -31,12 +32,13 @@ def set_model_name(comm_db, params, user="reco", edd: bool = False):
         url = secret["ab_onprem_prd_url"] if edd else secret["ab_prd_url"]
         url = f"{url}{MLS_COMPONENTS_API_URL}"
     requests.post(
-        url, json=params, headers={"Authorization": f"Basic {{{secret.get('user_token').get(user)}}}"},
+        url, json=params, headers={"Authorization": f"Basic {{{token}}}"},
     )
 
 
 def get_all_recent_model_path(comm_db, user="reco", edd: bool = False):
     secret = get_secrets("mls")
+    token = secret.get("user_token").get(user)
     if comm_db[-3:] == "dev":  # stg
         url = secret["ab_onprem_stg_url"] if edd else secret["ab_stg_url"]
         url = f"{url}{MLS_COMPONENTS_API_URL}"
@@ -44,11 +46,7 @@ def get_all_recent_model_path(comm_db, user="reco", edd: bool = False):
         url = secret["ab_onprem_prd_url"] if edd else secret["ab_prd_url"]
         url = f"{url}{MLS_COMPONENTS_API_URL}"
 
-    response = (
-        requests.get(url, headers={"Authorization": f"Basic {{{secret.get('user_token').get(user)}}}"})
-        .json()
-        .get("results")
-    )
+    response = requests.get(url, headers={"Authorization": f"Basic {{{token}}}"}).json().get("results")
 
     results = {component.get("name"): component.get("info") for component in response if component.get("is_latest")}
 
@@ -81,12 +79,15 @@ class MLSModelError(Exception):
         super().__init__(msg)
 
 
-def get_meta_table(meta_table: str, aws_env: AWSENV = AWSENV.STG.value, edd: bool = False) -> Dict[str, Any]:
+def get_meta_table(
+    meta_table: str, aws_env: AWSENV = AWSENV.STG.value, user="reco", edd: bool = False
+) -> Dict[str, Any]:
     """
     Get a meta_table information
     Args. :
         - meta_table   :   (str) the name of meta_table
         - aws_env      :   (str) AWS ENV in 'stg / prd' (default is 'stg')
+        - user         :   (str) the name of user (default is 'reco')
         - edd          :   (bool) True if On-prem env is on EDD (default is False)
     Returns :
         - Dictionary value of meta_table (id / name / description / schema / items / created_at / updated_at)
@@ -94,10 +95,13 @@ def get_meta_table(meta_table: str, aws_env: AWSENV = AWSENV.STG.value, edd: boo
     assert type(meta_table) == str
     assert type(aws_env) == str
 
+    secret = get_secrets("mls")
+    token = secret.get("user_token").get(user)
+
     url = get_secrets("mls")[f"ab_{'onprem_' if edd else ''}{aws_env}_url"]
     url = f"{url}{MLS_META_API_URL}/{meta_table}"
 
-    response = requests.get(url).json()
+    response = requests.get(url, headers={"Authorization": f"Basic {{{token}}}"}).json()
     results = response.get("results")
 
     if not results:
@@ -107,7 +111,12 @@ def get_meta_table(meta_table: str, aws_env: AWSENV = AWSENV.STG.value, edd: boo
 
 
 def create_meta_table_item(
-    meta_table: str, item_name: str, item_dict: Dict[str, Any], aws_env: AWSENV = AWSENV.STG.value, edd: bool = False
+    meta_table: str,
+    item_name: str,
+    item_dict: Dict[str, Any],
+    aws_env: AWSENV = AWSENV.STG.value,
+    user="reco",
+    edd: bool = False,
 ) -> None:
     """
     Create a meta_item
@@ -116,6 +125,7 @@ def create_meta_table_item(
         - item_name    :   (str) the name of meta_item to be added
         - item_dict    :   (dict) A dictionary type (item-value) value to upload to or update of the item
         - aws_env      :   (str) AWS ENV in 'stg / prd' (default is 'stg')
+        - user         :   (str) the name of user (default is 'reco')
         - edd          :   (bool) True if On-prem env is on EDD (default is False)
     """
     assert type(meta_table) == str
@@ -123,7 +133,10 @@ def create_meta_table_item(
     assert type(item_dict) == dict
     assert type(aws_env) == str
 
-    meta_table_info = get_meta_table(meta_table, aws_env, edd)
+    secret = get_secrets("mls")
+    token = secret.get("user_token").get(user)
+
+    meta_table_info = get_meta_table(meta_table, aws_env, user, edd)
 
     values_data = dict()
     for field_name, field_spec in meta_table_info["schema"].items():
@@ -134,9 +147,9 @@ def create_meta_table_item(
     request_data["values"] = values_data
 
     url = get_secrets("mls")[f"ab_{'onprem_' if edd else ''}{aws_env}_url"]
-    url = f"{url}{MLS_META_API_URL}/{meta_table}/items"
+    url = f"{url}{MLS_META_API_URL}/{meta_table}/meta_items"
 
-    response = requests.post(url, json=request_data).json()
+    response = requests.post(url, json=request_data, headers={"Authorization": f"Basic {{{token}}}"}).json()
     results = response.get("results")
 
     if not results:
@@ -144,7 +157,12 @@ def create_meta_table_item(
 
 
 def update_meta_table_item(
-    meta_table: str, item_name: str, item_dict: Dict[str, Any], aws_env: AWSENV = AWSENV.STG.value, edd: bool = False
+    meta_table: str,
+    item_name: str,
+    item_dict: Dict[str, Any],
+    aws_env: AWSENV = AWSENV.STG.value,
+    user="reco",
+    edd: bool = False,
 ) -> None:
     """
     Update a meta_item
@@ -153,6 +171,7 @@ def update_meta_table_item(
         - item_name    :   (str) the name of meta_item to be added
         - item_dict    :   (dict) A dictionary type (item-value) value to upload to or update of the item
         - aws_env      :   (str) AWS ENV in 'stg / prd' (default is 'stg')
+        - user         :   (str) the name of user (default is 'reco')
         - edd          :   (bool) True if On-prem env is on EDD (default is False)
     """
     assert type(meta_table) == str
@@ -160,7 +179,10 @@ def update_meta_table_item(
     assert type(item_dict) == dict
     assert type(aws_env) == str
 
-    meta_table_info = get_meta_table(meta_table, aws_env, edd)
+    secret = get_secrets("mls")
+    token = secret.get("user_token").get(user)
+
+    meta_table_info = get_meta_table(meta_table, aws_env, user, edd)
 
     values_data = dict()
     for field_name, field_spec in meta_table_info["schema"].items():
@@ -171,9 +193,9 @@ def update_meta_table_item(
     request_data["values"] = values_data
 
     url = get_secrets("mls")[f"ab_{'onprem_' if edd else ''}{aws_env}_url"]
-    url = f"{url}{MLS_META_API_URL}/{meta_table}/items/{item_name}"
+    url = f"{url}{MLS_META_API_URL}/{meta_table}/meta_items/{item_name}"
 
-    response = requests.put(url, json=request_data).json()
+    response = requests.put(url, json=request_data, headers={"Authorization": f"Basic {{{token}}}"}).json()
     results = response.get("results")
 
     if not results:
@@ -181,7 +203,7 @@ def update_meta_table_item(
 
 
 def get_meta_table_item(
-    meta_table: str, item_name: str, aws_env: AWSENV = AWSENV.STG.value, edd: bool = False
+    meta_table: str, item_name: str, aws_env: AWSENV = AWSENV.STG.value, user="reco", edd: bool = False
 ) -> Dict[str, Any]:
     """
     Get a meta_table information
@@ -189,6 +211,7 @@ def get_meta_table_item(
         - meta_table   :   (str) the name of meta_table
         - item_name    :   (str) the name of meta_item to be added
         - aws_env      :   (str) AWS ENV in 'stg / prd' (default is 'stg')
+        - user         :   (str) the name of user (default is 'reco')
         - edd          :   (bool) True if On-prem env is on EDD (default is False)
     Returns :
         - A dictionary type (item-value) value of the item_meta
@@ -197,10 +220,13 @@ def get_meta_table_item(
     assert type(item_name) == str
     assert type(aws_env) == str
 
-    url = get_secrets("mls")[f"ab_{'onprem_' if edd else ''}{aws_env}_url"]
-    url = f"{url}{MLS_META_API_URL}/{meta_table}/items/{item_name}"
+    secret = get_secrets("mls")
+    token = secret.get("user_token").get(user)
 
-    response = requests.get(url).json()
+    url = get_secrets("mls")[f"ab_{'onprem_' if edd else ''}{aws_env}_url"]
+    url = f"{url}{MLS_META_API_URL}/{meta_table}/meta_items/{item_name}"
+
+    response = requests.get(url, headers={"Authorization": f"Basic {{{token}}}"}).json()
     results = response.get("results")
 
     if not results:
@@ -209,12 +235,13 @@ def get_meta_table_item(
         return results
 
 
-def meta_table_to_pandas(meta_table: str, aws_env: AWSENV = AWSENV.STG.value, edd: bool = False) -> Any:
+def meta_table_to_pandas(meta_table: str, aws_env: AWSENV = AWSENV.STG.value, user="reco", edd: bool = False) -> Any:
     """
     Get a meta_table as pandas dataframe
     Args. :
         - meta_table   :   (str) the name of meta_table
         - aws_env      :   (str) AWS ENV in 'stg / prd' (default is 'stg')
+        - user         :   (str) the name of user (default is 'reco')
         - edd          :   (bool) True if On-prem env is on EDD (default is False)
     Returns :
         - A Pandas dataframe type of the item_meta
@@ -222,10 +249,13 @@ def meta_table_to_pandas(meta_table: str, aws_env: AWSENV = AWSENV.STG.value, ed
     assert type(meta_table) == str
     assert type(aws_env) == str
 
+    secret = get_secrets("mls")
+    token = secret.get("user_token").get(user)
+
     url = get_secrets("mls")[f"ab_{'onprem_' if edd else ''}{aws_env}_url"]
     url = f"{url}{MLS_META_API_URL}/{meta_table}"
 
-    response = requests.get(url).json()
+    response = requests.get(url, headers={"Authorization": f"Basic {{{token}}}"}).json()
 
     if not response.get("results"):
         raise MLSModelError(f"No meta_table '{meta_table}' exists on AWS {aws_env}")
@@ -239,6 +269,57 @@ def meta_table_to_pandas(meta_table: str, aws_env: AWSENV = AWSENV.STG.value, ed
     return df
 
 
+def pandas_to_meta_table(
+    method: str,
+    meta_table: str,
+    df: pd.DataFrame,
+    key: str,
+    values: list,
+    aws_env: AWSENV = AWSENV.STG.value,
+    user="reco",
+    edd: bool = False,
+) -> None:
+    """
+    Create or Update items of a meta_table from Pandas Dataframe
+    Args. :
+        - method       :   (str) requests method 'create' or 'update'
+        - meta_table   :   (str) MLS meta table name
+        - df           :   (pd.DataFrame) input table
+        - key          :   (str) key column in dataframe
+        - values       :   (list) Dataframe columns for input
+        - aws_env      :   (str) AWS ENV in 'stg / prd' (default is 'stg')
+        - user         :   (str) the name of user (default is 'reco')
+        - edd          :   (bool) True if On-prem env is on EDD (default is False)
+    """
+    assert type(aws_env) == str
+    assert method in ["create", "update"]
+    assert type(meta_table) == str
+    assert type(df) == pd.core.frame.DataFrame
+    assert type(key) == str
+    assert type(values) == list
+
+    url = get_secrets("mls")[f"ab_{'onprem_' if edd else ''}{aws_env}_url"]
+    url = f"{url}{MLS_META_API_URL}/{meta_table}/meta_items"
+
+    def to_json(x):
+        insert_dict = {}
+        insert_dict["name"] = x[key]
+        insert_dict["values"] = {}
+
+        for value in values:
+            insert_dict["values"][value] = x[value]
+
+        return insert_dict
+
+    json_series = df.apply(lambda x: to_json(x), axis=1)
+
+    for meta in json_series:
+        if method == "create":
+            create_meta_table_item(meta_table, meta.get("name"), meta.get("values"), aws_env, user)
+        else:
+            update_meta_table_item(meta_table, meta.get("name"), meta.get("values"), aws_env, user)
+
+
 def get_ml_model(
     user: str, model_name: str, model_version: str, aws_env: AWSENV = AWSENV.STG.value, edd: bool = False
 ) -> Dict[str, Any]:
@@ -249,7 +330,7 @@ def get_ml_model(
         - model_name     :   (str) the name of MLModel
         - model_version  :   (str) the version of MLModel
         - aws_env        :   (str) AWS ENV in 'stg / prd' (default is 'stg')
-        - edd          :   (bool) True if On-prem env is on EDD (default is False)
+        - edd            :   (bool) True if On-prem env is on EDD (default is False)
     Returns :
         - Dictionary value of MLModel
     """
@@ -332,52 +413,3 @@ def update_ml_model_meta(
     request_data["model_meta"] = model_meta_dict
 
     requests.patch(url, json=request_data).json()
-
-
-def pandas_to_meta_table(
-    method: str,
-    meta_table: str,
-    df: pd.DataFrame,
-    key: str,
-    values: list,
-    edd: bool = False,
-    aws_env: AWSENV = AWSENV.STG.value,
-) -> None:
-    """
-    Create or Update items of a meta_table from Pandas Dataframe
-    Args. :
-        - method       :   (str) requests method 'create' or 'update'
-        - meta_table   :   (str) MLS meta table name
-        - df           :   (pd.DataFrame) input table
-        - key          :   (str) key column in dataframe
-        - values       :   (list) Dataframe columns for input
-        - edd          :   (bool) True if On-prem env is on EDD (default is False)
-        - aws_env      :   (str) AWS ENV in 'stg / prd' (default is 'stg')
-    """
-    assert type(aws_env) == str
-    assert method in ["create", "update"]
-    assert type(meta_table) == str
-    assert type(df) == pd.core.frame.DataFrame
-    assert type(key) == str
-    assert type(values) == list
-
-    url = get_secrets("mls")[f"ab_{'onprem_' if edd else ''}{aws_env}_url"]
-    url = f"{url}{MLS_META_API_URL}/{meta_table}/items"
-
-    def to_json(x):
-        insert_dict = {}
-        insert_dict["name"] = x[key]
-        insert_dict["values"] = {}
-
-        for value in values:
-            insert_dict["values"][value] = x[value]
-
-        return insert_dict
-
-    json_series = df.apply(lambda x: to_json(x), axis=1)
-
-    for meta in json_series:
-        if method == "create":
-            create_meta_table_item(meta_table, meta.get("name"), meta.get("values"), aws_env)
-        else:
-            update_meta_table_item(meta_table, meta.get("name"), meta.get("values"), aws_env)
