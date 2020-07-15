@@ -100,6 +100,7 @@ def select_hash_schema(df, key):
             select_schema += (
                 f"case when a.lake_hashed_{key} is null then b.lake_hash else a.lake_hashed_{key} end as {key}"
             )
+        elif col == key:
             pass
         else:
             select_schema += "a." + col + ","
