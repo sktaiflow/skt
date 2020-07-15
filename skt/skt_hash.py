@@ -80,7 +80,7 @@ def get_file_list(path):
     return files
 
 
-def get_dt_list(parent_path):
+def get_latest_dt(parent_path):
     prefix = f"{parent_path}dt="
     files = get_file_list(parent_path)
     dts = [path.split("dt=")[-1] for path in files if path.startswith(prefix)]
@@ -89,7 +89,7 @@ def get_dt_list(parent_path):
 
 def mapping_table_load(ss):
     load_path = "/data/saturn/svc_mgmt_num_mapping/"
-    latest_dt = get_dt_list(load_path)
+    latest_dt = get_latest_dt(load_path)
     return ss.read.parquet(f"{load_path}dt={latest_dt}")
 
 
@@ -123,14 +123,14 @@ def select_unhash_schema(df, key):
 
 def fill_for_mapping_table(ss, df):
     spark = ss
-    output_path = "/data/saturn/svc_mgmt_num_mapping/"
-    latest_dt = get_dt_list(output_path)
+    mapping_path = "/data/saturn/svc_mgmt_num_mapping/"
+    output_path = "/data/saturn/svc_mgmt_num_mapping_fill/"
+    latest_dt = get_latest_dt(mapping_path)
 
     df.registerTempTable("fill_table")
 
     spark.sql(
         """
-
         select
             svc_mgmt_num as raw,
             sha2(svc_mgmt_num, 256) as ye_hashed,
