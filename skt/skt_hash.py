@@ -120,7 +120,8 @@ def select_unhash_schema(df, key):
     return select_schema
 
 
-def fill_for_mapping_table(df):
+def fill_for_mapping_table(sc, df):
+    spark = sc
 
     output_path = "/data/saturn/svc_mgmt_num_mapping/"
     latest_dt = get_dt_list(output_path)
@@ -265,7 +266,7 @@ def raw_to_lake_hash(sc, source_df, key):
 
         # append mapping table
         if key == "svc_mgmt_num":
-            fill_for_mapping_table(hashed_df)
+            fill_for_mapping_table(sc=spark, hashed_df)
 
     else:
         result_df = joined_df.drop(key).withColumnRenamed(f"lake_hashed_{key}", key)
