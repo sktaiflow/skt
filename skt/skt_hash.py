@@ -130,14 +130,12 @@ def fill_for_mapping_table(sc, df):
 
     spark.sql(
         """
-
         select
             svc_mgmt_num as raw,
             sha2(svc_mgmt_num, 256) as ye_hashed,
             lake_hash as lake_hashed
         from
             fill_table
-            
     """
     ).write.format("parquet").mode("append").save(f"{output_path}dt={latest_dt}")
 
@@ -152,21 +150,18 @@ def lake_hashed_to_raw(sc, source_df, key):
 
     joined_df = spark.sql(
         f""" 
-        
         select
             a.*,
             b.raw as raw_{key}
         from
             source_table a left outer join mapping_table b
             on a.{key} = b.lake_hashed
-            
     """
     )
     joined_df.registerTempTable("joined_table")
 
     not_mapping = spark.sql(
-        f"""
-
+        f""" 
         select 
             distinct
             {key} as svc_mgmt_num,
@@ -177,7 +172,6 @@ def lake_hashed_to_raw(sc, source_df, key):
         where
             raw_{key} is null
             and {key} is not null
-
     """
     )
 
@@ -189,13 +183,11 @@ def lake_hashed_to_raw(sc, source_df, key):
 
         result_df = spark.sql(
             f"""
-
             select
                 {schema}
             from
                 joined_table a left outer join fill_table b
                 on a.{key} = b.svc_mgmt_num
-
         """
         )
     else:
@@ -218,21 +210,18 @@ def raw_to_lake_hash(sc, source_df, key):
 
     joined_df = spark.sql(
         f""" 
-        
         select
             a.*,
             b.lake_hashed as lake_hashed_{key}
         from
             source_table a left outer join mapping_table b
             on a.{key} = b.raw
-            
     """
     )
     joined_df.registerTempTable("joined_table")
 
     not_mapping = spark.sql(
         f"""
-
         select 
             distinct
             {key} as svc_mgmt_num,
@@ -243,7 +232,6 @@ def raw_to_lake_hash(sc, source_df, key):
         where
             lake_hashed_{key} is null
             and {key} is not null
-
     """
     )
 
@@ -254,13 +242,11 @@ def raw_to_lake_hash(sc, source_df, key):
         schema = select_hash_schema(joined_df, key)
         result_df = spark.sql(
             f"""
-
             select
                 {schema}
             from
                 joined_table a left outer join fill_table b
                 on a.{key} = b.svc_mgmt_num
-
         """
         )
 
@@ -288,14 +274,12 @@ def sha256_to_raw(sc, source_df, key):
 
     joined_df = spark.sql(
         f""" 
-        
         select
             a.*,
             b.raw as raw_{key}
         from
             source_table a left outer join mapping_table b
             on a.{key} = b.ye_hashed
-            
     """
     )
 
@@ -317,14 +301,12 @@ def sha256_to_lake_hash(sc, source_df, key):
 
     joined_df = spark.sql(
         f""" 
-        
         select
             a.*,
             b.lake_hashed as lake_hashed_{key}
         from
             source_table a left outer join mapping_table b
             on a.{key} = b.ye_hashed
-            
     """
     )
 
