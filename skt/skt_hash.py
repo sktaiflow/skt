@@ -122,13 +122,14 @@ def select_unhash_schema(df, key):
 
 def fill_for_mapping_table(ss, df):
     spark = ss
-
     output_path = "/data/saturn/svc_mgmt_num_mapping/"
     latest_dt = get_dt_list(output_path)
 
     df.registerTempTable("fill_table")
 
-    spark.sql(""" \
+    spark.sql(
+        """
+
         select
             svc_mgmt_num as raw,
             sha2(svc_mgmt_num, 256) as ye_hashed,
@@ -147,29 +148,31 @@ def lake_hashed_to_raw(ss, source_df, key):
     mapping_df = mapping_table_load(ss=spark)
     mapping_df.registerTempTable("mapping_table")
 
-    joined_df = spark.sql(f""" \
+    joined_df = spark.sql(
+        f"""
         select
             a.*,
             b.raw as raw_{key}
         from
             source_table a left outer join mapping_table b
             on a.{key} = b.lake_hashed
-    """
+        """
     )
     joined_df.registerTempTable("joined_table")
 
-    not_mapping = spark.sql(f""" \
-        select 
+    not_mapping = spark.sql(
+        f"""
+        select
             distinct
             {key} as svc_mgmt_num,
             {key} as lake_unhash,
             substr({key}, 9,3) as seed
-        from 
+        from
             joined_table
         where
             raw_{key} is null
             and {key} is not null
-    """
+        """
     )
 
     if not_mapping.count() > 0:
@@ -178,7 +181,8 @@ def lake_hashed_to_raw(ss, source_df, key):
 
         schema = select_unhash_schema(joined_df, key)
 
-        result_df = spark.sql(f""" \
+        result_df = spark.sql(
+            f"""
             select
                 {schema}
             from
@@ -204,7 +208,8 @@ def raw_to_lake_hash(ss, source_df, key):
     mapping_df = mapping_table_load(ss=spark)
     mapping_df.registerTempTable("mapping_table")
 
-    joined_df = spark.sql(f""" \
+    joined_df = spark.sql(
+        f"""
         select
             a.*,
             b.lake_hashed as lake_hashed_{key}
@@ -215,13 +220,14 @@ def raw_to_lake_hash(ss, source_df, key):
     )
     joined_df.registerTempTable("joined_table")
 
-    not_mapping = spark.sql(f""" \
-        select 
+    not_mapping = spark.sql(
+        f"""
+        select
             distinct
             {key} as svc_mgmt_num,
             {key} as lake_hash,
             substr({key}, 9,3) as seed
-        from 
+        from
             joined_table
         where
             lake_hashed_{key} is null
@@ -234,7 +240,8 @@ def raw_to_lake_hash(ss, source_df, key):
         hashed_df.registerTempTable("fill_table")
 
         schema = select_hash_schema(joined_df, key)
-        result_df = spark.sql(f""" \
+        result_df = spark.sql(
+            f"""
             select
                 {schema}
             from
@@ -245,7 +252,7 @@ def raw_to_lake_hash(ss, source_df, key):
 
         # append mapping table
         if key == "svc_mgmt_num":
-            fill_for_mapping_table(ss=spark, hashed_df)
+            fill_for_mapping_table(ss=spark, df=hashed_df)
 
     else:
         result_df = joined_df.drop(key).withColumnRenamed(f"lake_hashed_{key}", key)
@@ -265,7 +272,8 @@ def sha256_to_raw(ss, source_df, key):
     mapping_df = mapping_table_load(ss=spark)
     mapping_df.registerTempTable("mapping_table")
 
-    joined_df = spark.sql(f""" \
+    joined_df = spark.sql(
+        f"""
         select
             a.*,
             b.raw as raw_{key}
@@ -291,7 +299,8 @@ def sha256_to_lake_hash(ss, source_df, key):
     mapping_df = mapping_table_load(ss=spark)
     mapping_df.registerTempTable("mapping_table")
 
-    joined_df = spark.sql(f""" \
+    joined_df = spark.sql(
+        f"""
         select
             a.*,
             b.lake_hashed as lake_hashed_{key}
@@ -330,7 +339,7 @@ def skt_hash(ss, df, before, after, key_column=None):
             result_df = sha256_to_raw(ss=spark, source_df=df, key=key)
 
         elif after == "lake_hash":
-            result_df = sha256_to_lake_hash(ss=spark, source_df=raw_df, key=key)
+            result_df = sha256_to_lake_hash(ss=spark, source_df=df, key=key)
 
         else:
             print(f"ERROR : Could not convert data to sha256 to '{after}'. after value is raw, sha256.")
