@@ -46,7 +46,7 @@ setuptools.setup(
     install_requires=[
         "thrift-sasl==0.3.0",
         "hvac>=0.9.6",
-        "pyhive[hive]",
+        "pyhive[hive]==0.6.2",
         "pyarrow>=0.16.0",
         "pandas==1.0.3",
         "slackclient>=2.5.0",
