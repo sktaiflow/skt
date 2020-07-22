@@ -150,6 +150,7 @@ def get_spark_for_bigquery():
         .config("spark.sql.execution.arrow.enabled", "false")
         .config("spark.jars", "gs://external_libs/spark/jars/spark-bigquery-with-dependencies_2.11-0.16.1.jar",)
         .config("spark.yarn.queue", "airflow_job")
+        .enableHiveSupport()
         .getOrCreate()
     )
     return spark
