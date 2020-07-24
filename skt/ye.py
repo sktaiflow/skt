@@ -1,4 +1,5 @@
 from skt.vault_utils import get_secrets
+from skt.gcp import set_gcp_credentials
 
 
 def get_hive_conn():
@@ -43,6 +44,9 @@ def get_spark(scale=0, queue=None):
         else:
             queue = "airflow_job"
     os.environ["ARROW_PRE_0_15_IPC_FORMAT"] = "1"
+    
+    set_gcp_credentials()
+    
     if scale in [1, 2, 3, 4]:
         spark = (
             SparkSession.builder.config("spark.app.name", app_name)
@@ -56,6 +60,7 @@ def get_spark(scale=0, queue=None):
             .config("spark.port.maxRetries", "128")
             .config("spark.executorEnv.ARROW_PRE_0_15_IPC_FORMAT", "1")
             .config("spark.yarn.appMasterEnv.ARROW_PRE_0_15_IPC_FORMAT", "1")
+            .config("spark.jars", "gs://external_libs/spark/jars/spark-bigquery-with-dependencies_2.11-0.16.1.jar",)
             .enableHiveSupport()
             .getOrCreate()
         )
@@ -74,6 +79,7 @@ def get_spark(scale=0, queue=None):
             .config("spark.port.maxRetries", "128")
             .config("spark.executorEnv.ARROW_PRE_0_15_IPC_FORMAT", "1")
             .config("spark.yarn.appMasterEnv.ARROW_PRE_0_15_IPC_FORMAT", "1")
+            .config("spark.jars", "gs://external_libs/spark/jars/spark-bigquery-with-dependencies_2.11-0.16.1.jar",)
             .enableHiveSupport()
             .getOrCreate()
         )
