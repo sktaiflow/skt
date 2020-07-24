@@ -1,5 +1,4 @@
 from skt.vault_utils import get_secrets
-from skt.gcp import set_gcp_credentials
 
 
 def get_hive_conn():
@@ -45,7 +44,15 @@ def get_spark(scale=0, queue=None):
             queue = "airflow_job"
     os.environ["ARROW_PRE_0_15_IPC_FORMAT"] = "1"
     
-    set_gcp_credentials()
+    import os
+    import tempfile
+    from skt.vault_utils import get_secrets
+
+    key = get_secrets("gcp/sktaic-datahub/dataflow")["config"]
+    key_file_name = tempfile.mkstemp()[1]
+    with open(key_file_name, "wb") as key_file:
+        key_file.write(key.encode())
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = key_file.name
     
     if scale in [1, 2, 3, 4]:
         spark = (

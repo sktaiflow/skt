@@ -109,15 +109,16 @@ def bq_to_pandas(query, project_id="sktaic-datahub"):
     )
 
 
-def _bq_table_to_df(dataset, table_name, col_list, partition=None, where=None):
+def _bq_table_to_df(dataset, table_name, col_list, partition=None, where=None, spark_session=None):
     import base64
     from skt.vault_utils import get_secrets
 
-    spark = get_spark()
-    spark.conf.set("spark.sql.execution.arrow.enabled", "false")
+    if not spark_session:
+        spark_session = get_spark()
+    spark_session.conf.set("spark.sql.execution.arrow.enabled", "false")
     key = get_secrets("gcp/sktaic-datahub/dataflow")["config"]
     df = (
-        spark.read.format("bigquery")
+        spark_session.read.format("bigquery")
         .option("project", "sktaic-datahub")
         .option("table", f"sktaic-datahub:{dataset}.{table_name}")
         .option("credentials", base64.b64encode(key.encode()).decode())
@@ -140,8 +141,8 @@ def _bq_table_to_df(dataset, table_name, col_list, partition=None, where=None):
     return df
 
 
-def bq_table_to_df(dataset, table_name, col_list, partition=None, where=None):
-    return _bq_table_to_df(dataset, table_name, col_list, partition, where)
+def bq_table_to_df(dataset, table_name, col_list, partition=None, where=None, spark_session=None):
+    return _bq_table_to_df(dataset, table_name, col_list, partition, where, spark_session)
 
 
 def bq_table_to_parquet(dataset, table_name, output_dir, col_list="*", partition=None, where=None, mode="overwrite"):
@@ -207,3 +208,19 @@ def rdd_to_pandas(func):
         return [Row(**d) for d in result_pdf.to_dict(orient="records")]
 
     return _rdd_to_pandas
+
+
+from google.cloud.bigquery.job import QueryJobConfig
+
+def bq_to_df(query, spark_session=None):
+    import time
+    temp_table_name = f"bq_to_df__{str(int(time.time()))}"
+    temp_dataset = "temp_1d"
+    jc = QueryJobConfig(create_disposition="CREATE_IF_NEEDED",
+                        write_disposition="WRITE_TRUNCATE",
+                        destination=f"sktaic-datahub.{temp_dataset}.{temp_table_name}")
+    bq_client = get_bigquery_client()
+    job = bq_client.query(query, job_config=jc)
+    job.result()
+    
+    return _bq_table_to_df(temp_dataset, temp_table_name, "*", spark_session=spark_session)
