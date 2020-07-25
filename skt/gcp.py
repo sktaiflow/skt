@@ -1,4 +1,5 @@
 from skt.ye import get_spark
+from google.cloud.bigquery.job import QueryJobConfig
 
 
 def _bq_cell_magic(line, query):
@@ -61,7 +62,7 @@ def set_gcp_credentials():
 def import_bigquery_ipython_magic():
     load_bigquery_ipython_magic()
 
-        
+
 def load_bigquery_ipython_magic():
     if _is_ipython():
         from IPython import get_ipython
@@ -190,7 +191,7 @@ def parquet_to_bq_table(parquet_dir, dataset, table_name, partition=None, mode="
 def pandas_to_bq_table(pd_df, dataset, table_name, partition=None, mode="overwrite"):
     try:
         spark = get_spark()
-        spark_df = spark.createDataFrame(df)
+        spark_df = spark.createDataFrame(pd_df)
         _df_to_bq_table(spark_df, dataset, table_name, partition, mode)
     finally:
         spark.stop()
@@ -210,17 +211,18 @@ def rdd_to_pandas(func):
     return _rdd_to_pandas
 
 
-from google.cloud.bigquery.job import QueryJobConfig
-
 def bq_to_df(query, spark_session=None):
     import time
+
     temp_table_name = f"bq_to_df__{str(int(time.time()))}"
     temp_dataset = "temp_1d"
-    jc = QueryJobConfig(create_disposition="CREATE_IF_NEEDED",
-                        write_disposition="WRITE_TRUNCATE",
-                        destination=f"sktaic-datahub.{temp_dataset}.{temp_table_name}")
+    jc = QueryJobConfig(
+        create_disposition="CREATE_IF_NEEDED",
+        write_disposition="WRITE_TRUNCATE",
+        destination=f"sktaic-datahub.{temp_dataset}.{temp_table_name}",
+    )
     bq_client = get_bigquery_client()
     job = bq_client.query(query, job_config=jc)
     job.result()
-    
+
     return _bq_table_to_df(temp_dataset, temp_table_name, "*", spark_session=spark_session)
