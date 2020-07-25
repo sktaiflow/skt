@@ -43,7 +43,7 @@ def get_spark(scale=0, queue=None):
         else:
             queue = "airflow_job"
     os.environ["ARROW_PRE_0_15_IPC_FORMAT"] = "1"
-    
+
     import os
     import tempfile
     from skt.vault_utils import get_secrets
@@ -53,7 +53,7 @@ def get_spark(scale=0, queue=None):
     with open(key_file_name, "wb") as key_file:
         key_file.write(key.encode())
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = key_file.name
-    
+
     if scale in [1, 2, 3, 4]:
         spark = (
             SparkSession.builder.config("spark.app.name", app_name)
