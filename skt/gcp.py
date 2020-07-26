@@ -1,3 +1,7 @@
+from skt.ye import get_spark
+from google.cloud.bigquery.job import QueryJobConfig
+
+
 def _bq_cell_magic(line, query):
     from IPython.core import magic_arguments
     from google.cloud.bigquery.magics import _cell_magic
@@ -54,38 +58,12 @@ def set_gcp_credentials():
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = key_file.name
 
 
-def gcp_credentials_decorator(func):
-    def decorated(*args, **kwargs):
-        import os.path
-        import tempfile
-        from skt.vault_utils import get_secrets
-
-        is_key_temp = False
-        try:
-            if "GOOGLE_APPLICATION_CREDENTIALS" in os.environ:
-                key_file_name = os.environ["GOOGLE_APPLICATION_CREDENTIALS"]
-                if not os.path.isfile(key_file_name):
-                    with open(key_file_name, "wb") as key_file:
-                        key = get_secrets("gcp/sktaic-datahub/dataflow")["config"]
-                        key_file.write(key.encode())
-                        key_file.seek(0)
-            else:
-                key_file = tempfile.NamedTemporaryFile(delete=False)
-                key = get_secrets("gcp/sktaic-datahub/dataflow")["config"]
-                key_file.write(key.encode())
-                key_file.seek(0)
-                os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = key_file.name
-                is_key_temp = True
-            result = func(*args, **kwargs)
-        finally:
-            if os.path.isfile(os.environ["GOOGLE_APPLICATION_CREDENTIALS"]) and is_key_temp:
-                os.remove(os.environ["GOOGLE_APPLICATION_CREDENTIALS"])
-        return result
-
-    return decorated
-
-
+# deprecated
 def import_bigquery_ipython_magic():
+    load_bigquery_ipython_magic()
+
+
+def load_bigquery_ipython_magic():
     if _is_ipython():
         from IPython import get_ipython
 
@@ -123,7 +101,6 @@ def _get_partition_filter(dataset, table_name, partition):
     return ""
 
 
-@gcp_credentials_decorator
 def bq_to_pandas(query, project_id="sktaic-datahub"):
     import pandas as pd
 
@@ -133,37 +110,16 @@ def bq_to_pandas(query, project_id="sktaic-datahub"):
     )
 
 
-def get_spark_for_bigquery():
-    set_gcp_credentials()
-    from pyspark.sql import SparkSession
-
-    spark = (
-        SparkSession.builder.config("spark.driver.memory", "6g")
-        .config("spark.executor.memory", "8g")
-        .config("spark.shuffle.service.enabled", "true")
-        .config("spark.dynamicAllocation.enabled", "true")
-        .config("spark.dynamicAllocation.maxExecutors", "200")
-        .config("spark.driver.maxResultSize", "16g")
-        .config("spark.rpc.message.maxSize", "2000")
-        .config("spark.executor.memoryOverhead", "2000")
-        .config("spark.port.maxRetries", "128")
-        .config("spark.sql.execution.arrow.enabled", "false")
-        .config("spark.jars", "gs://external_libs/spark/jars/spark-bigquery-with-dependencies_2.11-0.16.1.jar",)
-        .config("spark.yarn.queue", "airflow_job")
-        .enableHiveSupport()
-        .getOrCreate()
-    )
-    return spark
-
-
-def _bq_table_to_df(dataset, table_name, col_list, partition=None, where=None):
+def _bq_table_to_df(dataset, table_name, col_list, partition=None, where=None, spark_session=None):
     import base64
     from skt.vault_utils import get_secrets
 
-    spark = get_spark_for_bigquery()
+    if not spark_session:
+        spark_session = get_spark()
+    spark_session.conf.set("spark.sql.execution.arrow.enabled", "false")
     key = get_secrets("gcp/sktaic-datahub/dataflow")["config"]
     df = (
-        spark.read.format("bigquery")
+        spark_session.read.format("bigquery")
         .option("project", "sktaic-datahub")
         .option("table", f"sktaic-datahub:{dataset}.{table_name}")
         .option("credentials", base64.b64encode(key.encode()).decode())
@@ -186,9 +142,8 @@ def _bq_table_to_df(dataset, table_name, col_list, partition=None, where=None):
     return df
 
 
-@gcp_credentials_decorator
-def bq_table_to_df(dataset, table_name, col_list, partition=None, where=None):
-    return _bq_table_to_df(dataset, table_name, col_list, partition, where)
+def bq_table_to_df(dataset, table_name, col_list, partition=None, where=None, spark_session=None):
+    return _bq_table_to_df(dataset, table_name, col_list, partition, where, spark_session)
 
 
 def bq_table_to_parquet(dataset, table_name, output_dir, col_list="*", partition=None, where=None, mode="overwrite"):
@@ -220,26 +175,23 @@ def _df_to_bq_table(df, dataset, table_name, partition=None, mode="overwrite"):
     ).option("table", table).option("temporaryGcsBucket", "mnoai-us").save(mode=mode)
 
 
-@gcp_credentials_decorator
 def df_to_bq_table(df, dataset, table_name, partition=None, mode="overwrite"):
     _df_to_bq_table(df, dataset, table_name, partition, mode)
 
 
-@gcp_credentials_decorator
 def parquet_to_bq_table(parquet_dir, dataset, table_name, partition=None, mode="overwrite"):
     try:
-        spark = get_spark_for_bigquery()
+        spark = get_spark()
         df = spark.read.format("parquet").load(parquet_dir)
         _df_to_bq_table(df, dataset, table_name, partition, mode)
     finally:
         spark.stop()
 
 
-@gcp_credentials_decorator
-def pandas_to_bq_table(df, dataset, table_name, partition=None, mode="overwrite"):
+def pandas_to_bq_table(pd_df, dataset, table_name, partition=None, mode="overwrite"):
     try:
-        spark = get_spark_for_bigquery()
-        spark_df = spark.createDataFrame(df)
+        spark = get_spark()
+        spark_df = spark.createDataFrame(pd_df)
         _df_to_bq_table(spark_df, dataset, table_name, partition, mode)
     finally:
         spark.stop()
@@ -257,3 +209,20 @@ def rdd_to_pandas(func):
         return [Row(**d) for d in result_pdf.to_dict(orient="records")]
 
     return _rdd_to_pandas
+
+
+def bq_to_df(query, spark_session=None):
+    import time
+
+    temp_table_name = f"bq_to_df__{str(int(time.time()))}"
+    temp_dataset = "temp_1d"
+    jc = QueryJobConfig(
+        create_disposition="CREATE_IF_NEEDED",
+        write_disposition="WRITE_TRUNCATE",
+        destination=f"sktaic-datahub.{temp_dataset}.{temp_table_name}",
+    )
+    bq_client = get_bigquery_client()
+    job = bq_client.query(query, job_config=jc)
+    job.result()
+
+    return _bq_table_to_df(temp_dataset, temp_table_name, "*", spark_session=spark_session)
