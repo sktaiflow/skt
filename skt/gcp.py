@@ -276,7 +276,8 @@ def load_query_result_to_table(dest_table, query, part_col_name=None, clustering
                     destination=dest_table,
                     write_disposition="WRITE_TRUNCATE",
                     create_disposition="CREATE_IF_NEEDED",
-                    range_partitioning=RangePartitioning(PartitionRange(start=200001, end=209912, interval=1), field=part_col_name),
+                    range_partitioning=RangePartitioning(
+                        PartitionRange(start=200001, end=209912, interval=1), field=part_col_name),
                     clustering_fields=clustering_fields
                 )
             else:
