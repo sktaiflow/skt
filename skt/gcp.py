@@ -251,13 +251,14 @@ def load_query_result_to_table(dest_table, query, part_col_name=None, clustering
             create_disposition="CREATE_IF_NEEDED",
             time_partitioning=table.time_partitioning,
             range_partitioning=table.range_partitioning,
-            clustering_fields=table.clustering_fields
+            clustering_fields=table.clustering_fields,
         )
         job = bq_client.query(query, job_config=qjc)
         job.result()
 
     else:
         import time
+
         temp_table_name = f"load_query_result_to_table__{str(int(time.time()))}"
         bq_client.query(f"CREATE OR REPLACE TABLE temp_1d.{temp_table_name} AS {query}").result()
         if part_col_name:
@@ -269,7 +270,7 @@ def load_query_result_to_table(dest_table, query, part_col_name=None, clustering
                     write_disposition="WRITE_TRUNCATE",
                     create_disposition="CREATE_IF_NEEDED",
                     time_partitioning=TimePartitioning(field=part_col_name),
-                    clustering_fields=clustering_fields
+                    clustering_fields=clustering_fields,
                 )
             elif partition_type == "INTEGER":
                 qjc = QueryJobConfig(
@@ -277,8 +278,9 @@ def load_query_result_to_table(dest_table, query, part_col_name=None, clustering
                     write_disposition="WRITE_TRUNCATE",
                     create_disposition="CREATE_IF_NEEDED",
                     range_partitioning=RangePartitioning(
-                        PartitionRange(start=200001, end=209912, interval=1), field=part_col_name),
-                    clustering_fields=clustering_fields
+                        PartitionRange(start=200001, end=209912, interval=1), field=part_col_name
+                    ),
+                    clustering_fields=clustering_fields,
                 )
             else:
                 print(partition_type)
