@@ -1,5 +1,8 @@
+from google.cloud.bigquery import RangePartitioning, PartitionRange, TimePartitioning
+
 from skt.ye import get_spark
 from google.cloud.bigquery.job import QueryJobConfig
+from google.cloud.exceptions import NotFound
 
 
 def _bq_cell_magic(line, query):
@@ -88,6 +91,14 @@ def get_bigquery_client():
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = f.name
         client = bigquery.Client()
     return client
+
+
+def bq_table_exists(table):
+    try:
+        get_bigquery_client().get_table(table)
+    except NotFound:
+        return False
+    return True
 
 
 def _get_partition_filter(dataset, table_name, partition):
@@ -226,3 +237,53 @@ def bq_to_df(query, spark_session=None):
     job.result()
 
     return _bq_table_to_df(temp_dataset, temp_table_name, "*", spark_session=spark_session)
+
+
+def load_query_result_to_table(dest_table, query, part_col_name=None, clustering_fields=None):
+    bq_client = get_bigquery_client()
+    qjc = None
+    print(query)
+    if bq_table_exists(dest_table):
+        table = bq_client.get_table(dest_table)
+        qjc = QueryJobConfig(
+            destination=dest_table,
+            write_disposition="WRITE_TRUNCATE",
+            create_disposition="CREATE_IF_NEEDED",
+            time_partitioning=table.time_partitioning,
+            range_partitioning=table.range_partitioning,
+            clustering_fields=table.clustering_fields,
+        )
+        job = bq_client.query(query, job_config=qjc)
+        job.result()
+
+    else:
+        import time
+
+        temp_table_name = f"load_query_result_to_table__{str(int(time.time()))}"
+        bq_client.query(f"CREATE OR REPLACE TABLE temp_1d.{temp_table_name} AS {query}").result()
+        if part_col_name:
+            schema = bq_client.get_table(f"temp_1d.{temp_table_name}").schema
+            partition_type = [f for f in schema if f.name.lower() == part_col_name.lower()][0].field_type
+            if partition_type == "DATE":
+                qjc = QueryJobConfig(
+                    destination=dest_table,
+                    write_disposition="WRITE_TRUNCATE",
+                    create_disposition="CREATE_IF_NEEDED",
+                    time_partitioning=TimePartitioning(field=part_col_name),
+                    clustering_fields=clustering_fields,
+                )
+            elif partition_type == "INTEGER":
+                qjc = QueryJobConfig(
+                    destination=dest_table,
+                    write_disposition="WRITE_TRUNCATE",
+                    create_disposition="CREATE_IF_NEEDED",
+                    range_partitioning=RangePartitioning(
+                        PartitionRange(start=200001, end=209912, interval=1), field=part_col_name
+                    ),
+                    clustering_fields=clustering_fields,
+                )
+            else:
+                print(partition_type)
+                raise Exception(f"Partition column[{part_col_name}] is neither DATE or INTEGER type.")
+        job = bq_client.query(f"SELECT * FROM temp_1d.{temp_table_name}", job_config=qjc)
+        job.result()
