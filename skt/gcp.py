@@ -291,6 +291,7 @@ def load_query_result_to_table(dest_table, query, part_col_name=None, clustering
 
 def get_max_part(table_name):
     from datetime import datetime
+
     bq_client = get_bigquery_client()
     parts = get_bigquery_client().list_partitions(table_name)
     max_part_value = max(list(filter(lambda x: x != "__NULL__", parts)))
@@ -301,4 +302,4 @@ def get_max_part(table_name):
     elif table.range_partitioning:
         return int(max_part_value)
     else:
-        raise Exception(f"Partition column is neither DATE or INTEGER type.")
+        raise Exception("Partition column is neither DATE or INTEGER type.")
