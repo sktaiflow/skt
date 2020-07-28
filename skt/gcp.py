@@ -293,8 +293,12 @@ def get_max_part(table_name):
     from datetime import datetime
 
     bq_client = get_bigquery_client()
-    parts = get_bigquery_client().list_partitions(table_name)
-    max_part_value = max(list(filter(lambda x: x != "__NULL__", parts)))
+    parts = filter(lambda x: x != "__NULL__", get_bigquery_client().list_partitions(table_name))
+
+    if not parts:
+        raise Exception("Max partition value is invalid or null.")
+
+    max_part_value = max(parts)
 
     table = bq_client.get_table(table_name)
     if table.time_partitioning:
