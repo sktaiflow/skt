@@ -6,11 +6,11 @@ def map_column(input_df, replace_column, mapping_df, _from, _to):
     """
     mapper = mapping_df.select(_from, _to)
     output_columns = input_df.columns
-    mapped = input_df \
-        .join(mapper, input_df[replace_column] == mapping_df[_from], how="inner") \
-        .drop(replace_column) \
-        .withColumnRenamed(_to, replace_column) \
+    mapped = (
+        input_df.join(mapper, input_df[replace_column] == mapping_df[_from], how="inner")
+        .drop(replace_column)
+        .withColumnRenamed(_to, replace_column)
         .select(output_columns)
-    remainder = input_df \
-        .join(mapper, input_df[replace_column] == mapping_df[_from], how="left_anti")
+    )
+    remainder = input_df.join(mapper, input_df[replace_column] == mapping_df[_from], how="left_anti")
     return mapped, remainder
