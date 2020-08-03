@@ -115,6 +115,7 @@ def _get_partition_filter(dataset, table_name, partition):
 def bq_to_pandas(query, project_id="sktaic-datahub"):
     import pandas as pd
 
+    set_gcp_credentials()
     configuration = {"query": {"useQueryCache": True}}
     return pd.read_gbq(
         query=query, project_id=project_id, dialect="standard", use_bqstorage_api=True, configuration=configuration
