@@ -21,6 +21,15 @@ def get_hdfs_conn():
     return conn
 
 
+def get_sqlalchemy_engine():
+    from sqlalchemy import create_engine
+    hiveserver2 = get_secrets(path="ye/hiveserver2")
+    host = hiveserver2["ip"]
+    port = hiveserver2["port"]
+    user = hiveserver2["user"]
+    return create_engine(f'hive://{user}@{host}:{port}/tmp')
+
+
 def get_pkl_from_hdfs(pkl_path):
     import pickle
 
@@ -204,3 +213,99 @@ def get_github_util():
     }
     g = GithubUtil(github_token, proxies)
     return g
+
+
+def _write_to_parquet_via_spark(pandas_df, hdfs_path):
+    spark = get_spark()
+    spark_df = spark.createDataFrame(pandas_df)
+    spark_df.write.mode('overwrite').parquet(hdfs_path)
+
+
+def _write_to_parquet(pandas_df, hdfs_path):
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+    import pandas
+
+    # Read Parquet INT64 timestamp issue:
+    # https://issues.apache.org/jira/browse/HIVE-21215
+    if "datetime64[ns]" in pandas_df.dtypes.tolist():
+        _write_to_parquet_via_spark(pandas_df, hdfs_path)
+        return
+
+    pa_table = pa.Table.from_pandas(pandas_df)
+    hdfs_conn = get_hdfs_conn()
+    try:
+        pq.write_to_dataset(pa_table, root_path=hdfs_path, filesystem=hdfs_conn)
+    finally:
+        hdfs_conn.close()
+
+
+def _write_df(pandas_df, schema_name, table_name, hdfs_path, engine, cursor,
+              tmp_table_name):
+    import pandas
+    import sqlalchemy.exc
+    cursor.execute(f"drop table if exists {schema_name}.{tmp_table_name}")
+    try:
+        pandas_df.to_sql(tmp_table_name, engine, schema=schema_name,
+                         if_exists='replace', index=False)
+    except sqlalchemy.exc.ProgrammingError:
+        # Hive bulk insert issue:
+        # https://github.com/dropbox/PyHive/issues/343
+        pass
+
+    cursor.execute(f"drop table if exists {schema_name}.{table_name}")
+    if hdfs_path is None:
+        cursor.execute(f"""create table {schema_name}.{table_name}
+                           like {schema_name}.{tmp_table_name}
+                           stored as parquet""")
+        cursor.execute(f"show create table {schema_name}.{table_name}")
+        result = cursor.fetchall()
+        managed_hdfs_path = list(filter (lambda row: row[0].strip().find("hdfs://") == 1,
+                                         result))[0][0].strip()[1:-1]
+        _write_to_parquet(pandas_df, managed_hdfs_path)
+    else:
+        cursor.execute(f"""create external table {schema_name}.{table_name}
+                           like {schema_name}.{tmp_table_name}
+                           stored as parquet
+                           location '{hdfs_path}'""")
+
+
+def write_df_to_hive(pandas_df, schema_name, table_name, hdfs_path=None):
+    """
+    Exports a Panadas dataframe into a table in Hive.
+
+    Example:
+    write_df_to_hive(pandas_df1, "my_schema", "my_table1")
+    write_df_to_hive(pandas_df2, "my_schema", "my_table2")
+    write_df_to_hive(pandas_df1, "my_schema", "my_table3",
+            hdfs_path="hdfs://.../my_schema.db/my_table1")
+
+    Parameters
+    ----------
+    pandas_df : an ojbect of Pandas Dataframe
+    schema_name : str
+        A target schema name of Hive
+    table_name : str
+        A target table name of Hive
+    hdfs_path : str, default None
+        A path of Hadoop file system as an optional parameter.
+        It will be used to create an external table. If hdfs_path
+        is not None, data in the dataframe will not be converted.
+        A metadata in the dataframe is just used to create a Hive
+        table.
+    """
+    engine = get_sqlalchemy_engine()
+    conn = get_hive_conn()
+    cursor = conn.cursor()
+
+    import hashlib
+    tmp_table_name = hashlib.sha1(str(f"{schema_name}.{table_name}")
+                            .encode("utf-8")).hexdigest()
+
+    try:
+        _write_df(pandas_df, schema_name, table_name, hdfs_path, engine,
+                  cursor, tmp_table_name)
+    finally:
+        cursor.execute(f"drop table if exists {schema_name}.{tmp_table_name}")
+        cursor.close()
+        conn.close()
