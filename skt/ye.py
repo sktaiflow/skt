@@ -224,7 +224,6 @@ def _write_to_parquet_via_spark(pandas_df, hdfs_path):
 def _write_to_parquet(pandas_df, hdfs_path):
     import pyarrow as pa
     import pyarrow.parquet as pq
-    import pandas
 
     # Read Parquet INT64 timestamp issue:
     # https://issues.apache.org/jira/browse/HIVE-21215
@@ -242,7 +241,6 @@ def _write_to_parquet(pandas_df, hdfs_path):
 
 def _write_df(pandas_df, schema_name, table_name, hdfs_path, engine, cursor,
               tmp_table_name):
-    import pandas
     import sqlalchemy.exc
     cursor.execute(f"drop table if exists {schema_name}.{tmp_table_name}")
     try:
@@ -260,8 +258,8 @@ def _write_df(pandas_df, schema_name, table_name, hdfs_path, engine, cursor,
                            stored as parquet""")
         cursor.execute(f"show create table {schema_name}.{table_name}")
         result = cursor.fetchall()
-        managed_hdfs_path = list(filter (lambda row: row[0].strip().find("hdfs://") == 1,
-                                         result))[0][0].strip()[1:-1]
+        managed_hdfs_path = list(filter(lambda row: row[0].strip().find("hdfs://") == 1,
+                                        result))[0][0].strip()[1:-1]
         _write_to_parquet(pandas_df, managed_hdfs_path)
     else:
         cursor.execute(f"""create external table {schema_name}.{table_name}
@@ -300,7 +298,7 @@ def write_df_to_hive(pandas_df, schema_name, table_name, hdfs_path=None):
 
     import hashlib
     tmp_table_name = hashlib.sha1(str(f"{schema_name}.{table_name}")
-                            .encode("utf-8")).hexdigest()
+                                  .encode("utf-8")).hexdigest()
 
     try:
         _write_df(pandas_df, schema_name, table_name, hdfs_path, engine,
