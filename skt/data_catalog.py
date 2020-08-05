@@ -17,6 +17,16 @@ DATA_CATALOG_SECRETS_NAME = "data_catalog"
 DATA_LINEAGE_SECRETS_NAME = "data_lineage"
 
 
+def get_lineage(table):
+    secrets = get_secrets(DATA_LINEAGE_SECRETS_NAME)
+    return requests.get(f"{secrets['url_prd']}/relationships/lineage/node/{table}").json()
+
+
+def get_lineage_network(table, sequence=True):
+    secrets = get_secrets(DATA_LINEAGE_SECRETS_NAME)
+    return requests.get(f"{secrets['url_prd']}/relationships/lineage/node/{table}/network?sequence={sequence}")
+
+
 def get_sources():
     secrets = get_secrets(DATA_CATALOG_SECRETS_NAME)
     return requests.get(f"{secrets['url_prd']}/sources").json()
@@ -27,14 +37,22 @@ def get_source(source):
     return requests.get(f"{secrets['url_prd']}/sources/{source}").json()
 
 
+def get_table(table_id):
+    return get_resource("tables", table_id)
+
+
 def get_tables(source, limit=1000):
     secrets = get_secrets(DATA_CATALOG_SECRETS_NAME)
     return requests.get(f"{secrets['url_prd']}/sources/{source}/tables?limit={limit}").json()
 
 
 def get_table_detail(source, table_id):
-    secrets = get_secrets(DATA_CATALOG_SECRETS_NAME)
-    return requests.get(f"{secrets['url_prd']}/sources/{source}/tables/{table_id}").json()
+    print("deprecated! use 'get_table(table_id)' ")
+    return get_table(table_id)
+
+
+def get_column(column_id):
+    return get_resource("columns", column_id)
 
 
 def get_columns(source, table_id):
@@ -43,8 +61,17 @@ def get_columns(source, table_id):
 
 
 def get_column_detail(source, column_id):
+    print("deprecated! use 'get_column(column_id)' ")
+    return get_column(column_id)
+
+
+def get_resource(resource_name, resource_id):
     secrets = get_secrets(DATA_CATALOG_SECRETS_NAME)
-    return requests.get(f"{secrets['url_prd']}/sources/{source}/columns/{column_id}").json()
+    return requests.get(f"{secrets['url_prd']}/v1/resources/{resource_name}/{resource_id}").json()
+
+
+def get_query(query_id):
+    return get_resource("processes", query_id)
 
 
 def get_queries(source, limit=100):
@@ -53,8 +80,8 @@ def get_queries(source, limit=100):
 
 
 def get_query_detail(source, query_id):
-    secrets = get_secrets(DATA_CATALOG_SECRETS_NAME)
-    return requests.get(f"{secrets['url_prd']}/sources/{source}/processes/{query_id}").json()
+    print("deprecated! use 'get_query(query_id)' ")
+    return get_query(query_id)
 
 
 def search_table_by_name(name, **kwargs):
@@ -283,7 +310,13 @@ def get_user_data_access(user_name, start_date=None, end_date=None, timeseries=F
             column_list = list(map(lambda each: each["target"], response))
 
             result.append(
-                {"inputs": inputs, "outputs": outputs, "columns": column_list, "start_time": each_query["sort"][0]}
+                {
+                    "inputs": inputs,
+                    "outputs": outputs,
+                    "columns": column_list,
+                    "start_time": each_query["sort"][0],
+                    "query_id": query_id,
+                }
             )
         else:
             inputs = each_query["_source"].get("inputs", []) or []
@@ -311,7 +344,7 @@ def get_user_data_access(user_name, start_date=None, end_date=None, timeseries=F
         return {"tables": list(table_dict.keys()), "columns": list(column_dict.keys())}
 
 
-def get_table_top_n_tables(n, resource_type="*", start_date=None, end_date=None):
+def get_table_top_n_tables(n, start_date=None, end_date=None):
     lineage_secrets = get_secrets(DATA_LINEAGE_SECRETS_NAME)
 
     params = {"top_n": n, "start_date": start_date, "end_date": end_date}
@@ -321,7 +354,7 @@ def get_table_top_n_tables(n, resource_type="*", start_date=None, end_date=None)
     return response
 
 
-def get_table_top_n_columns(n, resource_type="*", start_date=None, end_date=None):
+def get_table_top_n_columns(n, start_date=None, end_date=None):
     lineage_secrets = get_secrets(DATA_LINEAGE_SECRETS_NAME)
 
     params = {"top_n": n, "start_date": start_date, "end_date": end_date}

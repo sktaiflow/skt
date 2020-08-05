@@ -29,7 +29,7 @@ air = [
 
 setuptools.setup(
     name="skt",
-    version="0.2.3",
+    version="0.2.4",
     author="SKT",
     author_email="all@sktai.io",
     description="SKT package",
@@ -59,7 +59,7 @@ setuptools.setup(
         "tabulate>=0.8.7",
         "pandas_gbq",
         "google-cloud-bigquery-storage",
-        'sqlalchemy>=1.3.0',
+        "sqlalchemy>=1.3.0",
     ],
     entry_points={"console_scripts": ["nes = skt.nes:nes_cli"]},
     extras_require={"air": air},
