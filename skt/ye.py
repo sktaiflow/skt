@@ -23,11 +23,12 @@ def get_hdfs_conn():
 
 def get_sqlalchemy_engine():
     from sqlalchemy import create_engine
+
     hiveserver2 = get_secrets(path="ye/hiveserver2")
     host = hiveserver2["ip"]
     port = hiveserver2["port"]
     user = hiveserver2["user"]
-    return create_engine(f'hive://{user}@{host}:{port}/tmp')
+    return create_engine(f"hive://{user}@{host}:{port}/tmp")
 
 
 def get_pkl_from_hdfs(pkl_path):
@@ -218,7 +219,7 @@ def get_github_util():
 def _write_to_parquet_via_spark(pandas_df, hdfs_path):
     spark = get_spark()
     spark_df = spark.createDataFrame(pandas_df)
-    spark_df.write.mode('overwrite').parquet(hdfs_path)
+    spark_df.write.mode("overwrite").parquet(hdfs_path)
 
 
 def _write_to_parquet(pandas_df, hdfs_path):
@@ -239,13 +240,12 @@ def _write_to_parquet(pandas_df, hdfs_path):
         hdfs_conn.close()
 
 
-def _write_df(pandas_df, schema_name, table_name, hdfs_path, engine, cursor,
-              tmp_table_name):
+def _write_df(pandas_df, schema_name, table_name, hdfs_path, engine, cursor, tmp_table_name):
     import sqlalchemy.exc
+
     cursor.execute(f"drop table if exists {schema_name}.{tmp_table_name}")
     try:
-        pandas_df.to_sql(tmp_table_name, engine, schema=schema_name,
-                         if_exists='replace', index=False)
+        pandas_df.to_sql(tmp_table_name, engine, schema=schema_name, if_exists="replace", index=False)
     except sqlalchemy.exc.ProgrammingError:
         # Hive bulk insert issue:
         # https://github.com/dropbox/PyHive/issues/343
@@ -253,19 +253,22 @@ def _write_df(pandas_df, schema_name, table_name, hdfs_path, engine, cursor,
 
     cursor.execute(f"drop table if exists {schema_name}.{table_name}")
     if hdfs_path is None:
-        cursor.execute(f"""create table {schema_name}.{table_name}
+        cursor.execute(
+            f"""create table {schema_name}.{table_name}
                            like {schema_name}.{tmp_table_name}
-                           stored as parquet""")
+                           stored as parquet"""
+        )
         cursor.execute(f"show create table {schema_name}.{table_name}")
         result = cursor.fetchall()
-        managed_hdfs_path = list(filter(lambda row: row[0].strip().find("hdfs://") == 1,
-                                        result))[0][0].strip()[1:-1]
+        managed_hdfs_path = list(filter(lambda row: row[0].strip().find("hdfs://") == 1, result))[0][0].strip()[1:-1]
         _write_to_parquet(pandas_df, managed_hdfs_path)
     else:
-        cursor.execute(f"""create external table {schema_name}.{table_name}
+        cursor.execute(
+            f"""create external table {schema_name}.{table_name}
                            like {schema_name}.{tmp_table_name}
                            stored as parquet
-                           location '{hdfs_path}'""")
+                           location '{hdfs_path}'"""
+        )
 
 
 def write_df_to_hive(pandas_df, schema_name, table_name, hdfs_path=None):
@@ -297,12 +300,11 @@ def write_df_to_hive(pandas_df, schema_name, table_name, hdfs_path=None):
     cursor = conn.cursor()
 
     import hashlib
-    tmp_table_name = hashlib.sha1(str(f"{schema_name}.{table_name}")
-                                  .encode("utf-8")).hexdigest()
+
+    tmp_table_name = hashlib.sha1(str(f"{schema_name}.{table_name}").encode("utf-8")).hexdigest()
 
     try:
-        _write_df(pandas_df, schema_name, table_name, hdfs_path, engine,
-                  cursor, tmp_table_name)
+        _write_df(pandas_df, schema_name, table_name, hdfs_path, engine, cursor, tmp_table_name)
     finally:
         cursor.execute(f"drop table if exists {schema_name}.{tmp_table_name}")
         cursor.close()
