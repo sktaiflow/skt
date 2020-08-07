@@ -184,7 +184,7 @@ def _df_to_bq_table(df, dataset, table_name, partition=None, mode="overwrite"):
     table = f"{dataset}.{table_name}${partition}" if partition else f"{dataset}.{table_name}"
     df.write.format("bigquery").option("project", "sktaic-datahub").option(
         "credentials", base64.b64encode(key.encode()).decode()
-    ).option("table", table).option("temporaryGcsBucket", "mnoai-us").save(mode=mode)
+    ).option("table", table).option("temporaryGcsBucket", "temp-seoul-7d").save(mode=mode)
 
 
 def df_to_bq_table(df, dataset, table_name, partition=None, mode="overwrite"):
