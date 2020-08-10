@@ -22,6 +22,19 @@ MLS_META_API_URL = "/api/v1/meta_tables"
 MLS_MLMODEL_API_URL = "/api/v1/models"
 
 
+def get_mls_meta_table_client(env=None):
+    from sktmls.meta_tables.meta_table import MetaTableClient
+    from sktmls import MLSENV
+
+    if env == "prd":
+        env = MLSENV.PRD
+
+    secrets = get_secrets(path="mls")
+    reco_id = secrets["reco_id"]
+    reco_pass = secrets["reco_pass"]
+    return MetaTableClient(env=env, username=reco_id, password=reco_pass)
+
+
 def set_model_name(comm_db, params, user="reco", edd: bool = False):
     secret = get_secrets("mls")
     token = secret.get("user_token").get(user)
