@@ -25,8 +25,6 @@ air = [
     "matplotlib==3.2.1",
     "mushroom_rl==1.4.0",
     "pytorch-widedeep==0.3.7",
-    "rl-for-reco==1.0.13",
-    "lightgbmwithbayesopt=1.0.2",
 ]
 
 setuptools.setup(
