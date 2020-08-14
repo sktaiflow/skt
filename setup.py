@@ -31,7 +31,7 @@ air = [
 
 setuptools.setup(
     name="skt",
-    version="0.2.9",
+    version="0.2.10",
     author="SKT",
     author_email="all@sktai.io",
     description="SKT package",
@@ -49,7 +49,7 @@ setuptools.setup(
         "thrift-sasl==0.3.0",
         "hvac>=0.9.6",
         "pyhive[hive]==0.6.2",
-        "pyarrow==0.17.1",
+        "pyarrow<1.0.0",
         "pandas==1.0.3",
         "slackclient>=2.5.0",
         "google-cloud-bigquery>=1.24.0",
