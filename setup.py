@@ -31,7 +31,7 @@ air = [
 
 setuptools.setup(
     name="skt",
-    version="0.2.10",
+    version="0.2.11",
     author="SKT",
     author_email="all@sktai.io",
     description="SKT package",
