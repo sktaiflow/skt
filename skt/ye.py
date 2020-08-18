@@ -59,7 +59,9 @@ def get_spark(scale=0, queue=None):
             }
             publish_relation(source, destination, context=context)
             return old_method(self, path, **kwargs)
+
         return new_method
+
     # Add hook for data relation
     if hasattr(DataFrameWriter, "hooked"):
         # Avoid recursive hook add
