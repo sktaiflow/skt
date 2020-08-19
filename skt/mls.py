@@ -22,17 +22,36 @@ MLS_META_API_URL = "/api/v1/meta_tables"
 MLS_MLMODEL_API_URL = "/api/v1/models"
 
 
-def get_mls_meta_table_client(env=None):
+def get_mls_meta_table_client(env="stg"):
     from sktmls.meta_tables.meta_table import MetaTableClient
     from sktmls import MLSENV
 
     if env == "prd":
         env = MLSENV.PRD
+    else:
+        env = MLSENV.STG
 
     secrets = get_secrets(path="mls")
     reco_id = secrets["reco_id"]
     reco_pass = secrets["reco_pass"]
     return MetaTableClient(env=env, username=reco_id, password=reco_pass)
+
+
+def create_or_update_meta_table(table_name, schema=None, env="stg"):
+    c = get_mls_meta_table_client(env)
+    if c.meta_table_exists(name=table_name):
+        t = c.get_meta_table(name=table_name)
+        if schema:
+            c.update_meta_table(meta_table=t, schema=schema)
+    else:
+        c.create_meta_table(name=table_name, schema=schema)
+
+
+def upsert_meta_table(table_name, items_dict, env="stg"):
+    c = get_mls_meta_table_client(env)
+    t = c.get_meta_table(name=table_name)
+    items = c.create_meta_items(meta_table=t, items_dict=items_dict)
+    return len(items)
 
 
 def set_model_name(comm_db, params, user="reco", edd: bool = False):
