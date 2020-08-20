@@ -52,7 +52,7 @@ setuptools.setup(
         "pyarrow<1.0.0",
         "pandas==1.0.3",
         "slackclient>=2.5.0",
-        "google-cloud-bigquery>=1.24.0",
+        "google-cloud-bigquery==1.26.1",
         "httplib2>=0.18.0",
         "click",
         "PyGithub",
