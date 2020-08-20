@@ -40,7 +40,7 @@ def get_mls_meta_table_client(env="stg", user="reco"):
         user_pass = secrets.get("reco_pass")
 
     if not user_id or not user_pass:
-        raise MLSModelError("No ID or Password for the user {user}")
+        raise Exception("No ID or Password for the user {user}")
 
     return MetaTableClient(env=env, username=user_id, password=user_pass)
 
