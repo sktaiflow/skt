@@ -33,8 +33,8 @@ def get_mls_meta_table_client(env="stg", user="reco"):
 
     secrets = get_secrets(path="mls")
     if user != "reco":
-        user_id = secrets.get("{user}_id")
-        user_pass = secrets.get("{user}_pass")
+        user_id = secrets.get(f"{user}_id")
+        user_pass = secrets.get(f"{user}_pass")
     else:
         user_id = secrets.get("reco_id")
         user_pass = secrets.get("reco_pass")
