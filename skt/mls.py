@@ -22,7 +22,7 @@ MLS_META_API_URL = "/api/v1/meta_tables"
 MLS_MLMODEL_API_URL = "/api/v1/models"
 
 
-def get_mls_meta_table_client(env="stg"):
+def get_mls_meta_table_client(env="stg", user="reco"):
     from sktmls.meta_tables.meta_table import MetaTableClient
     from sktmls import MLSENV
 
@@ -32,13 +32,21 @@ def get_mls_meta_table_client(env="stg"):
         env = MLSENV.STG
 
     secrets = get_secrets(path="mls")
-    reco_id = secrets["reco_id"]
-    reco_pass = secrets["reco_pass"]
-    return MetaTableClient(env=env, username=reco_id, password=reco_pass)
+    if user != "reco":
+        user_id = secrets.get(f"{user}_id")
+        user_pass = secrets.get(f"{user}_pass")
+    else:
+        user_id = secrets.get("reco_id")
+        user_pass = secrets.get("reco_pass")
+
+    if not user_id or not user_pass:
+        raise Exception("No ID or Password for the user {user}")
+
+    return MetaTableClient(env=env, username=user_id, password=user_pass)
 
 
-def create_or_update_meta_table(table_name, schema=None, env="stg"):
-    c = get_mls_meta_table_client(env)
+def create_or_update_meta_table(table_name, schema=None, env="stg", user="reco"):
+    c = get_mls_meta_table_client(env=env, user=user)
     if c.meta_table_exists(name=table_name):
         t = c.get_meta_table(name=table_name)
         if schema:
@@ -47,8 +55,8 @@ def create_or_update_meta_table(table_name, schema=None, env="stg"):
         c.create_meta_table(name=table_name, schema=schema)
 
 
-def upsert_meta_table(table_name, items_dict, env="stg"):
-    c = get_mls_meta_table_client(env)
+def upsert_meta_table(table_name, items_dict, env="stg", user="reco"):
+    c = get_mls_meta_table_client(env=env, user=user)
     t = c.get_meta_table(name=table_name)
     items = c.create_meta_items(meta_table=t, items_dict=items_dict)
     return len(items)
