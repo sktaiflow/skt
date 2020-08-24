@@ -10,6 +10,8 @@ def load_long_description():
 # Start dependencies group
 air = [
     "bayesian-optimization==1.1.0",
+    "catboost<1.0.0",
+    "plotnine<1.0.0",
     "shap==0.35.0",
     "gensim==3.8.1",
     "torch==1.4.0",
@@ -31,7 +33,7 @@ air = [
 
 setuptools.setup(
     name="skt",
-    version="0.2.14",
+    version="0.2.15",
     author="SKT",
     author_email="all@sktai.io",
     description="SKT package",
@@ -50,14 +52,13 @@ setuptools.setup(
         "hvac>=0.9.6",
         "pyhive[hive]==0.6.2",
         "pyarrow<1.0.0",
-        "pandas==1.0.3",
+        "pandas==1.1.0",
         "slackclient>=2.5.0",
         "google-cloud-bigquery==1.26.1",
         "httplib2>=0.18.0",
         "click",
         "PyGithub",
         "pycryptodome",
-        "joblib==0.14.1",
         "tabulate>=0.8.7",
         "pandas_gbq",
         "google-cloud-bigquery-storage",
