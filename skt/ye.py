@@ -45,33 +45,7 @@ def get_spark(scale=0, queue=None):
     import uuid
     import tempfile
     from pyspark.sql import SparkSession
-    from pyspark.sql.readwriter import DataFrameWriter
     from skt.vault_utils import get_secrets
-    from skt.data_lineage import publish_relation
-
-    def add_hook(old_method):
-        def new_method(self, path, **kwargs):
-            query_execution = self._df._jdf.queryExecution().toString()
-            source = "spark"
-            destination = path
-            context = {
-                "query_execution": query_execution,
-            }
-            publish_relation(source, destination, context=context)
-            return old_method(self, path, **kwargs)
-
-        return new_method
-
-    # Add hook for data relation
-    if hasattr(DataFrameWriter, "hooked"):
-        # Avoid recursive hook add
-        pass
-    else:
-        DataFrameWriter.parquet = add_hook(DataFrameWriter.parquet)
-        DataFrameWriter.text = add_hook(DataFrameWriter.text)
-        DataFrameWriter.json = add_hook(DataFrameWriter.json)
-        DataFrameWriter.csv = add_hook(DataFrameWriter.csv)
-        DataFrameWriter.hooked = True
 
     tmp_uuid = str(uuid.uuid4())
     app_name = f"skt-{os.environ.get('USER', 'default')}-{tmp_uuid}"
