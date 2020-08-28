@@ -75,7 +75,10 @@ def get_spark(scale=0, queue=None):
             .config("spark.port.maxRetries", "128")
             .config("spark.executorEnv.ARROW_PRE_0_15_IPC_FORMAT", "1")
             .config("spark.yarn.appMasterEnv.ARROW_PRE_0_15_IPC_FORMAT", "1")
-            .config("spark.jars", "gs://external_libs/spark/jars/spark-bigquery-with-dependencies_2.11-0.16.1.jar",)
+            .config(
+                "spark.jars",
+                "gs://external_libs/spark/jars/spark-bigquery-with-dependencies_2.11-0.16.1.jar",
+            )
             .enableHiveSupport()
             .getOrCreate()
         )
@@ -94,7 +97,10 @@ def get_spark(scale=0, queue=None):
             .config("spark.port.maxRetries", "128")
             .config("spark.executorEnv.ARROW_PRE_0_15_IPC_FORMAT", "1")
             .config("spark.yarn.appMasterEnv.ARROW_PRE_0_15_IPC_FORMAT", "1")
-            .config("spark.jars", "gs://external_libs/spark/jars/spark-bigquery-with-dependencies_2.11-0.16.1.jar",)
+            .config(
+                "spark.jars",
+                "gs://external_libs/spark/jars/spark-bigquery-with-dependencies_2.11-0.16.1.jar",
+            )
             .enableHiveSupport()
             .getOrCreate()
         )
@@ -195,7 +201,12 @@ def slack_send(
         "blocks": blocks,
         "icon_emoji": icon_emoji,
     }
-    r = requests.post("https://www.slack.com/api/chat.postMessage", proxies=proxies, headers=headers, json=json_body,)
+    r = requests.post(
+        "https://www.slack.com/api/chat.postMessage",
+        proxies=proxies,
+        headers=headers,
+        json=json_body,
+    )
     r.raise_for_status()
     if not r.json()["ok"]:
         raise Exception(r.json())
