@@ -22,7 +22,7 @@ MLS_META_API_URL = "/api/v1/meta_tables"
 MLS_MLMODEL_API_URL = "/api/v1/models"
 
 
-def get_mls_meta_table_client(env="stg", runtime_env="stg", user="reco"):
+def get_mls_meta_table_client(env="stg", runtime_env="ye", user="reco"):
     from sktmls.meta_tables.meta_table import MetaTableClient
     from sktmls import MLSENV, MLSRuntimeENV
 
@@ -31,10 +31,12 @@ def get_mls_meta_table_client(env="stg", runtime_env="stg", user="reco"):
     else:
         env = MLSENV.STG
 
-    if runtime_env == "prd":
-        runtime_env = MLSRuntimeENV.PRD
+    if runtime_env == "ye":
+        runtime_env = MLSRuntimeENV.YE
+    elif runtime_env == "edd":
+        runtime_env = MLSRuntimeENV.EDD
     else:
-        runtime_env = MLSRuntimeENV.STG
+        runtime_env = MLSRuntimeENV.LOCAL
 
     secrets = get_secrets(path="mls")
     if user != "reco":
@@ -50,7 +52,7 @@ def get_mls_meta_table_client(env="stg", runtime_env="stg", user="reco"):
     return MetaTableClient(env=env, runtime_env=runtime_env, username=user_id, password=user_pass)
 
 
-def create_or_update_meta_table(table_name, schema=None, env="stg", runtime_env="stg", user="reco"):
+def create_or_update_meta_table(table_name, schema=None, env="stg", runtime_env="ye", user="reco"):
     c = get_mls_meta_table_client(env=env, runtime_env=runtime_env, user=user)
     if c.meta_table_exists(name=table_name):
         t = c.get_meta_table(name=table_name)
@@ -60,7 +62,7 @@ def create_or_update_meta_table(table_name, schema=None, env="stg", runtime_env=
         c.create_meta_table(name=table_name, schema=schema)
 
 
-def upsert_meta_table(table_name, items_dict, env="stg", runtime_env="stg", user="reco"):
+def upsert_meta_table(table_name, items_dict, env="stg", runtime_env="ye", user="reco"):
     c = get_mls_meta_table_client(env=env, user=user, runtime_env=runtime_env)
     t = c.get_meta_table(name=table_name)
     items = c.create_meta_items(meta_table=t, items_dict=items_dict)
