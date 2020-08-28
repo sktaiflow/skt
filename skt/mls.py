@@ -22,14 +22,19 @@ MLS_META_API_URL = "/api/v1/meta_tables"
 MLS_MLMODEL_API_URL = "/api/v1/models"
 
 
-def get_mls_meta_table_client(env="stg", user="reco"):
+def get_mls_meta_table_client(env="stg", runtime_env="stg", user="reco"):
     from sktmls.meta_tables.meta_table import MetaTableClient
-    from sktmls import MLSENV
+    from sktmls import MLSENV, MLSRuntimeENV
 
     if env == "prd":
         env = MLSENV.PRD
     else:
         env = MLSENV.STG
+
+    if runtime_env == "prd":
+        runtime_env = MLSRuntimeENV.PRD
+    else:
+        runtime_env = MLSRuntimeENV.STG
 
     secrets = get_secrets(path="mls")
     if user != "reco":
@@ -42,11 +47,11 @@ def get_mls_meta_table_client(env="stg", user="reco"):
     if not user_id or not user_pass:
         raise Exception("No ID or Password for the user {user}")
 
-    return MetaTableClient(env=env, username=user_id, password=user_pass)
+    return MetaTableClient(env=env, runtime_env=runtime_env, username=user_id, password=user_pass)
 
 
-def create_or_update_meta_table(table_name, schema=None, env="stg", user="reco"):
-    c = get_mls_meta_table_client(env=env, user=user)
+def create_or_update_meta_table(table_name, schema=None, env="stg", runtime_env="stg", user="reco"):
+    c = get_mls_meta_table_client(env=env, runtime_env=runtime_env, user=user)
     if c.meta_table_exists(name=table_name):
         t = c.get_meta_table(name=table_name)
         if schema:
@@ -55,8 +60,8 @@ def create_or_update_meta_table(table_name, schema=None, env="stg", user="reco")
         c.create_meta_table(name=table_name, schema=schema)
 
 
-def upsert_meta_table(table_name, items_dict, env="stg", user="reco"):
-    c = get_mls_meta_table_client(env=env, user=user)
+def upsert_meta_table(table_name, items_dict, env="stg", runtime_env="stg", user="reco"):
+    c = get_mls_meta_table_client(env=env, user=user, runtime_env=runtime_env)
     t = c.get_meta_table(name=table_name)
     items = c.create_meta_items(meta_table=t, items_dict=items_dict)
     return len(items)
@@ -72,7 +77,9 @@ def set_model_name(comm_db, params, user="reco", edd: bool = False):
         url = secret["ab_onprem_prd_url"] if edd else secret["ab_prd_url"]
         url = f"{url}{MLS_COMPONENTS_API_URL}"
     requests.post(
-        url, json=params, headers={"Authorization": f"Basic {{{token}}}"},
+        url,
+        json=params,
+        headers={"Authorization": f"Basic {{{token}}}"},
     )
 
 
