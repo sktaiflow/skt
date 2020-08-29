@@ -22,34 +22,51 @@ MLS_META_API_URL = "/api/v1/meta_tables"
 MLS_MLMODEL_API_URL = "/api/v1/models"
 
 
-def get_mls_meta_table_client(env="stg", runtime_env="ye", user="reco"):
+def check_client_config(config):
     from sktmls.meta_tables.meta_table import MetaTableClient
-    from sktmls import MLSENV, MLSRuntimeENV
+    client = MetaTableClient(**config)
+    client.list_meta_tables()
+    return client
 
+
+def generate_configs(env, user):
+    import pkg_resources
+    from packaging import version
+    from skt.vault_utils import get_secrets
+    from sktmls import MLSENV
+
+    mlsenv = MLSENV.STG
     if env == "prd":
-        env = MLSENV.PRD
-    else:
-        env = MLSENV.STG
-
-    if runtime_env == "ye":
-        runtime_env = MLSRuntimeENV.YE
-    elif runtime_env == "edd":
-        runtime_env = MLSRuntimeENV.EDD
-    else:
-        runtime_env = MLSRuntimeENV.LOCAL
-
+        mlsenv = MLSENV.PRD
     secrets = get_secrets(path="mls")
-    if user != "reco":
-        user_id = secrets.get(f"{user}_id")
-        user_pass = secrets.get(f"{user}_pass")
-    else:
-        user_id = secrets.get("reco_id")
-        user_pass = secrets.get("reco_pass")
+    config = dict(
+        env=mlsenv,
+        username=secrets.get(f"{user}_id"),
+        password=secrets.get(f"{user}_pass"),
+    )
 
-    if not user_id or not user_pass:
-        raise Exception("No ID or Password for the user {user}")
+    # sktmls version upgrade 후 수정
+    mls_v = pkg_resources.get_distribution("sktmls").version
+    if version.parse(mls_v) > version.parse("2020.8.29"):
+        from sktmls import MLSRuntimeENV
+        return [
+            {**config, "runtime_env": r} for r in MLSRuntimeENV.list_items()
+        ]
 
-    return MetaTableClient(env=env, runtime_env=runtime_env, username=user_id, password=user_pass)
+    return [config]
+
+
+def get_mls_meta_table_client(env="stg", user="reco"):
+    import concurrent.futures
+    configs = generate_configs(env=env, user=user)
+    e = concurrent.futures.ThreadPoolExecutor(max_workers=len(configs) + 1)
+    fs = [e.submit(check_client_config, conf)for conf in configs]
+    for f in concurrent.futures.as_completed(fs):
+        if f.exception() is None:
+            client = f.result()
+            break
+    e.shutdown(wait=False)
+    return client
 
 
 def create_or_update_meta_table(table_name, schema=None, env="stg", runtime_env="ye", user="reco"):
