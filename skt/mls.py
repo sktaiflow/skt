@@ -66,8 +66,8 @@ def get_mls_meta_table_client(env="stg", user="reco"):
     return client
 
 
-def create_or_update_meta_table(table_name, schema=None, env="stg", runtime_env="ye", user="reco"):
-    c = get_mls_meta_table_client(env=env, runtime_env=runtime_env, user=user)
+def create_or_update_meta_table(table_name, schema=None, env="stg", user="reco"):
+    c = get_mls_meta_table_client(env=env, user=user)
     if c.meta_table_exists(name=table_name):
         t = c.get_meta_table(name=table_name)
         if schema:
@@ -76,8 +76,8 @@ def create_or_update_meta_table(table_name, schema=None, env="stg", runtime_env=
         c.create_meta_table(name=table_name, schema=schema)
 
 
-def upsert_meta_table(table_name, items_dict, env="stg", runtime_env="ye", user="reco"):
-    c = get_mls_meta_table_client(env=env, user=user, runtime_env=runtime_env)
+def upsert_meta_table(table_name, items_dict, env="stg", user="reco"):
+    c = get_mls_meta_table_client(env=env, user=user)
     t = c.get_meta_table(name=table_name)
     items = c.create_meta_items(meta_table=t, items_dict=items_dict)
     return len(items)
