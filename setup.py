@@ -64,6 +64,7 @@ setuptools.setup(
         "google-cloud-bigquery-storage",
         "grpcio<2.0dev",
         "sqlalchemy>=1.3.0",
+        "packaging"
     ],
     entry_points={"console_scripts": ["nes = skt.nes:nes_cli"]},
     extras_require={"air": air},
