@@ -8,6 +8,8 @@ import os
 
 from skt.vault_utils import get_secrets
 
+from sktmls.meta_tables.meta_table import MetaTableClient
+
 
 MLS_MODEL_DIR = os.path.join(Path.home(), "mls_temp_dir")
 MODEL_BINARY_NAME = "model.joblib"
@@ -23,11 +25,9 @@ MLS_MLMODEL_API_URL = "/api/v1/models"
 
 
 def check_client_config(config):
-    from sktmls.meta_tables.meta_table import MetaTableClient
-
     client = MetaTableClient(**config)
     client.list_meta_tables()
-    return client
+    return config
 
 
 def generate_configs(env, user):
@@ -56,7 +56,7 @@ def generate_configs(env, user):
     return [config]
 
 
-def get_mls_meta_table_client(env="stg", user="reco"):
+def get_mls_config(env, user):
     import concurrent.futures
 
     configs = generate_configs(env=env, user=user)
@@ -64,10 +64,22 @@ def get_mls_meta_table_client(env="stg", user="reco"):
     fs = [e.submit(check_client_config, conf) for conf in configs]
     for f in concurrent.futures.as_completed(fs):
         if f.exception() is None:
-            client = f.result()
+            config = f.result()
             break
     e.shutdown(wait=False)
-    return client
+    return config
+
+
+def get_mls_meta_table_client(env="stg", user="reco"):
+    config = get_mls_config(env, user)
+    return MetaTableClient(**config)
+
+
+def get_mls_component_client(env="stg", user="reco"):
+    from sktmls.components import ComponentClient
+
+    config = get_mls_config(env, user)
+    return ComponentClient(**config)
 
 
 def create_or_update_meta_table(table_name, schema=None, env="stg", user="reco"):
