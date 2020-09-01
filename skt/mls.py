@@ -82,6 +82,27 @@ def get_mls_component_client(env="stg", user="reco"):
     return ComponentClient(**config)
 
 
+def get_mls_dimension_client(env="stg", user="reco"):
+    from sktmls.dimensions import DimensionClient
+
+    config = get_mls_config(env, user)
+    return DimensionClient(**config)
+
+
+def get_mls_experiment_client(env="stg", user="reco"):
+    from sktmls.experiments import ExperimentClient
+
+    config = get_mls_config(env, user)
+    return ExperimentClient(**config)
+
+
+def get_mls_model_registry(env="stg", user="reco"):
+    from sktmls import ModelRegistry
+
+    config = get_mls_config(env, user)
+    return ModelRegistry(env=config["env"], runtime_env=config["runtime_env"])
+
+
 def create_or_update_meta_table(table_name, schema=None, env="stg", user="reco"):
     c = get_mls_meta_table_client(env=env, user=user)
     if c.meta_table_exists(name=table_name):
