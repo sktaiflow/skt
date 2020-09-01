@@ -33,7 +33,7 @@ air = [
 
 setuptools.setup(
     name="skt",
-    version="0.2.20",
+    version="0.2.21",
     author="SKT",
     author_email="all@sktai.io",
     description="SKT package",
@@ -60,10 +60,10 @@ setuptools.setup(
         "PyGithub",
         "pycryptodome",
         "tabulate>=0.8.7",
-        "pandas_gbq",
+        "pandas_gbq>=0.13.2",
         "google-cloud-bigquery-storage",
         "grpcio<2.0dev",
-        "sqlalchemy>=1.3.0",
+        "sqlalchemy==1.3.11",
         "packaging",
     ],
     entry_points={"console_scripts": ["nes = skt.nes:nes_cli"]},
