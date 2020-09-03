@@ -16,8 +16,7 @@ def get_credentials():
     key = get_secrets("gcp/sktaic-datahub/dataflow")["config"]
     json_acct_info = json.loads(key)
     credentials = service_account.Credentials.from_service_account_info(json_acct_info)
-    scoped_credentials = credentials.with_scopes(
-        ['https://www.googleapis.com/auth/cloud-platform'])
+    scoped_credentials = credentials.with_scopes(["https://www.googleapis.com/auth/cloud-platform"])
 
     return scoped_credentials
 
@@ -127,9 +126,7 @@ def bq_to_pandas(sql, project_id=PROJECT_ID):
     credentials = get_credentials()
     client = get_bigquery_client(credentials=credentials)
     # Use a BigQuery Storage API client to download results more quickly.
-    bqstorage_client = bigquery_storage_v1beta1.BigQueryStorageClient(
-        credentials=credentials
-    )
+    bqstorage_client = bigquery_storage_v1beta1.BigQueryStorageClient(credentials=credentials)
     df = client.query(sql).to_dataframe(bqstorage_client=bqstorage_client)
     client.close()
 
