@@ -4,6 +4,9 @@ from skt.ye import get_spark
 from google.cloud.bigquery.job import QueryJobConfig
 from google.cloud.exceptions import NotFound
 
+PROJECT_ID = "sktaic-datahub"
+TEMP_DATASET = "temp_1d"
+
 
 def _bq_cell_magic(line, query):
     from IPython.core import magic_arguments
@@ -246,17 +249,15 @@ def load_query_result_to_table(dest_table, query, part_col_name=None, clustering
     print(query)
     if bq_table_exists(dest_table):
         table = bq_client.get_table(dest_table)
-        qjc = QueryJobConfig(
-            destination=dest_table,
-            write_disposition="WRITE_TRUNCATE",
-            create_disposition="CREATE_IF_NEEDED",
-            time_partitioning=table.time_partitioning,
-            range_partitioning=table.range_partitioning,
-            clustering_fields=table.clustering_fields,
-        )
-        job = bq_client.query(query, job_config=qjc)
-        job.result()
-
+        if table.range_partitioning or table.time_partitioning:
+            load_query_result_to_partitions(query, dest_table)
+        else:
+            qjc = QueryJobConfig(
+                destination=dest_table,
+                write_disposition="WRITE_TRUNCATE",
+                clustering_fields=table.clustering_fields,
+            )
+            bq_client.query(query, job_config=qjc).result()
     else:
         import time
 
@@ -286,8 +287,57 @@ def load_query_result_to_table(dest_table, query, part_col_name=None, clustering
             else:
                 print(partition_type)
                 raise Exception(f"Partition column[{part_col_name}] is neither DATE or INTEGER type.")
-        job = bq_client.query(f"SELECT * FROM temp_1d.{temp_table_name}", job_config=qjc)
-        job.result()
+        bq_client.query(f"SELECT * FROM temp_1d.{temp_table_name}", job_config=qjc).result()
+
+
+def get_temp_table():
+    import uuid
+
+    table_id = str(uuid.uuid4()).replace("-", "_")
+    full_table_id = f"{PROJECT_ID}.{TEMP_DATASET}.{table_id}"
+
+    return full_table_id
+
+
+def load_query_result_to_partitions(query, dest_table):
+    from google.cloud.bigquery.table import TableReference
+    from google.cloud.bigquery.dataset import DatasetReference
+
+    bq = get_bigquery_client()
+    table = bq.get_table(dest_table)
+    temp_table_id = get_temp_table()
+    qjc = QueryJobConfig(
+        destination=temp_table_id,
+        write_disposition="WRITE_TRUNCATE",
+        create_disposition="CREATE_IF_NEEDED",
+        time_partitioning=table.time_partitioning,
+        range_partitioning=table.range_partitioning,
+        clustering_fields=table.clustering_fields,
+    )
+    bq.query(query, job_config=qjc).result()
+    partitions = bq.list_partitions(temp_table_id)
+    for p in partitions:
+        project_id, dataset_id, table_id = dest_table.split(".")
+        ref = TableReference(DatasetReference(project_id, dataset_id), f"{table_id}${p}")
+        qjc = QueryJobConfig(
+            destination=ref,
+            write_disposition="WRITE_TRUNCATE",
+            create_disposition="CREATE_IF_NEEDED",
+            time_partitioning=table.time_partitioning,
+            range_partitioning=table.range_partitioning,
+            clustering_fields=table.clustering_fields,
+        )
+        if table.range_partitioning:
+            part_name = table.range_partitioning.field
+            query = f"select * from {temp_table_id} where {part_name}={p}"
+            bq.query(query, job_config=qjc).result()
+        elif table.time_partitioning:
+            part_name = table.time_partitioning.field
+            partition = f"{p[:4]}-{p[4:6]}-{p[6:8]}"
+            query = f"select * from {temp_table_id} where {part_name}='{partition}'"
+            bq.query(query, job_config=qjc).result()
+
+    return partitions
 
 
 def get_max_part(table_name):
