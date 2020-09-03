@@ -96,6 +96,13 @@ def get_mls_experiment_client(env="stg", user="reco"):
     return ExperimentClient(**config)
 
 
+def get_mls_ml_model_client(env="stg", user="reco"):
+    from sktmls.models import MLModelClient
+
+    config = get_mls_config(env, user)
+    return MLModelClient(**config)
+
+
 def get_mls_model_registry(env="stg", user="reco"):
     from sktmls import ModelRegistry
 
