@@ -8,6 +8,19 @@ PROJECT_ID = "sktaic-datahub"
 TEMP_DATASET = "temp_1d"
 
 
+def get_credentials():
+    import json
+    from google.oauth2 import service_account
+    from skt.vault_utils import get_secrets
+
+    key = get_secrets("gcp/sktaic-datahub/dataflow")["config"]
+    json_acct_info = json.loads(key)
+    credentials = service_account.Credentials.from_service_account_info(json_acct_info)
+    scoped_credentials = credentials.with_scopes(["https://www.googleapis.com/auth/cloud-platform"])
+
+    return scoped_credentials
+
+
 def _bq_cell_magic(line, query):
     from IPython.core import magic_arguments
     from google.cloud.bigquery.magics import _cell_magic
@@ -79,21 +92,13 @@ def load_bigquery_ipython_magic():
         raise Exception("Cannot import bigquery magic. Because execution is not on ipython.")
 
 
-def get_bigquery_client():
-    import os
-    import tempfile
+def get_bigquery_client(credentials=None, project_id=PROJECT_ID):
     from google.cloud import bigquery
-    from skt.vault_utils import get_secrets
 
-    if "GOOGLE_APPLICATION_CREDENTIALS" in os.environ and os.path.isfile(os.environ["GOOGLE_APPLICATION_CREDENTIALS"]):
-        return bigquery.Client()
-    key = get_secrets("gcp/sktaic-datahub/dataflow")["config"]
-    with tempfile.NamedTemporaryFile() as f:
-        f.write(key.encode())
-        f.seek(0)
-        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = f.name
-        client = bigquery.Client()
-    return client
+    if credentials is None:
+        credentials = get_credentials()
+
+    return bigquery.Client(credentials=credentials, project=project_id)
 
 
 def bq_table_exists(table):
@@ -115,14 +120,17 @@ def _get_partition_filter(dataset, table_name, partition):
     return ""
 
 
-def bq_to_pandas(query, project_id="sktaic-datahub"):
-    import pandas as pd
+def bq_to_pandas(sql, project_id=PROJECT_ID):
+    from google.cloud import bigquery_storage_v1beta1
 
-    set_gcp_credentials()
-    configuration = {"query": {"useQueryCache": True}}
-    return pd.read_gbq(
-        query=query, project_id=project_id, dialect="standard", use_bqstorage_api=True, configuration=configuration
-    )
+    credentials = get_credentials()
+    client = get_bigquery_client(credentials=credentials)
+    # Use a BigQuery Storage API client to download results more quickly.
+    bqstorage_client = bigquery_storage_v1beta1.BigQueryStorageClient(credentials=credentials)
+    df = client.query(sql).to_dataframe(bqstorage_client=bqstorage_client)
+    client.close()
+
+    return df
 
 
 def _bq_table_to_df(dataset, table_name, col_list, partition=None, where=None, spark_session=None):
