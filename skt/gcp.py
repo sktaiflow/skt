@@ -257,15 +257,16 @@ def load_query_result_to_table(dest_table, query, part_col_name=None, clustering
     print(query)
     if bq_table_exists(dest_table):
         table = bq_client.get_table(dest_table)
-        if table.range_partitioning or table.time_partitioning:
-            load_query_result_to_partitions(query, dest_table)
-        else:
-            qjc = QueryJobConfig(
-                destination=dest_table,
-                write_disposition="WRITE_TRUNCATE",
-                clustering_fields=table.clustering_fields,
-            )
-            bq_client.query(query, job_config=qjc).result()
+        qjc = QueryJobConfig(
+            destination=dest_table,
+            write_disposition="WRITE_TRUNCATE",
+            create_disposition="CREATE_IF_NEEDED",
+            time_partitioning=table.time_partitioning,
+            range_partitioning=table.range_partitioning,
+            clustering_fields=table.clustering_fields,
+        )
+        job = bq_client.query(query, job_config=qjc)
+        job.result()
     else:
         import time
 
@@ -295,6 +296,12 @@ def load_query_result_to_table(dest_table, query, part_col_name=None, clustering
             else:
                 print(partition_type)
                 raise Exception(f"Partition column[{part_col_name}] is neither DATE or INTEGER type.")
+        else:
+            qjc = QueryJobConfig(
+                destination=dest_table,
+                write_disposition="WRITE_TRUNCATE",
+                create_disposition="CREATE_IF_NEEDED",
+            )
         bq_client.query(f"SELECT * FROM temp_1d.{temp_table_name}", job_config=qjc).result()
 
 
