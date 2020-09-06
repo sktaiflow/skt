@@ -23,7 +23,6 @@ air = [
     "xgboost==1.0.2",
     "lightgbm==2.3.1",
     "implicit==0.4.2",
-    "tqdm==4.43.0",
     "matplotlib==3.2.1",
     "mushroom_rl==1.4.0",
     "pytorch-widedeep==0.3.7",
@@ -33,7 +32,7 @@ air = [
 
 setuptools.setup(
     name="skt",
-    version="0.2.27",
+    version="0.2.28",
     author="SKT",
     author_email="all@sktai.io",
     description="SKT package",
@@ -65,6 +64,8 @@ setuptools.setup(
         "grpcio<2.0dev",
         "sqlalchemy==1.3.11",
         "packaging",
+        "tqdm>=4.48.2",
+        "ipywidgets",
     ],
     entry_points={"console_scripts": ["nes = skt.nes:nes_cli"]},
     extras_require={"air": air},
