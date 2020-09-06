@@ -21,6 +21,67 @@ def get_credentials():
     return scoped_credentials
 
 
+def get_bigquery_storage_client(credentials=None):
+    from google.cloud import bigquery_storage_v1beta1
+
+    if credentials is None:
+        credentials = get_credentials()
+
+    return bigquery_storage_v1beta1.BigQueryStorageClient(credentials=credentials)
+
+
+def _bq_query_to_new_table(
+    sql, destination=None, time_partitioning=None, range_partitioning=None, clustering_fields=None
+):
+    from google.cloud.bigquery.job import QueryJobConfig
+
+    bq = get_bigquery_client()
+    config = QueryJobConfig(
+        destination=destination,
+        write_disposition="WRITE_EMPTY",
+        create_disposition="CREATE_IF_NEEDED",
+        time_partitioning=time_partitioning,
+        range_partitioning=range_partitioning,
+        clustering_fields=clustering_fields,
+    )
+    job = bq.query(sql, config)
+    job.result()
+    bq.close()
+
+    return job.destination
+
+
+def _bq_query_to_existing_table(sql, destination):
+    from google.cloud.bigquery.job import QueryJobConfig
+
+    bq = get_bigquery_client()
+    table = bq.get_table(destination)
+    config = QueryJobConfig(
+        destination=destination,
+        write_disposition="WRITE_TRUNCATE",
+        create_disposition="CREATE_NEVER",
+        time_partitioning=table.time_partitioning,
+        range_partitioning=table.range_partitioning,
+        clustering_fields=table.clustering_fields,
+    )
+    job = bq.query(sql, config)
+    job.result()
+    bq.close()
+
+    return job.destination
+
+
+def _bq_table_to_pandas(table):
+    credentials = get_credentials()
+    bq = get_bigquery_client(credentials=credentials)
+    bqstorage_client = get_bigquery_storage_client(credentials=credentials)
+    row_iterator = bq.list_rows(table)
+    df = row_iterator.to_dataframe(bqstorage_client=bqstorage_client, progress_bar_type="tqdm")
+    bq.close()
+
+    return df
+
+
 def _bq_cell_magic(line, query):
     from IPython.core import magic_arguments
     from google.cloud.bigquery.magics import _cell_magic
@@ -120,17 +181,12 @@ def _get_partition_filter(dataset, table_name, partition):
     return ""
 
 
-def bq_to_pandas(sql, project_id=PROJECT_ID):
-    from google.cloud import bigquery_storage_v1beta1
-
-    credentials = get_credentials()
-    client = get_bigquery_client(credentials=credentials)
-    # Use a BigQuery Storage API client to download results more quickly.
-    bqstorage_client = bigquery_storage_v1beta1.BigQueryStorageClient(credentials=credentials)
-    df = client.query(sql).to_dataframe(bqstorage_client=bqstorage_client)
-    client.close()
-
-    return df
+def bq_to_pandas(sql, large=False):
+    destination = None
+    if large:
+        destination = get_temp_table()
+    destination = _bq_query_to_new_table(sql, destination)
+    return _bq_table_to_pandas(destination)
 
 
 def _bq_table_to_df(dataset, table_name, col_list, partition=None, where=None, spark_session=None):
