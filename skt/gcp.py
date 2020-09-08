@@ -292,17 +292,17 @@ def rdd_to_pandas(func):
 
 def bq_to_df(query, spark_session=None):
     temp_table_name = get_temp_table()
-    temp_dataset = "temp_1d"
     jc = QueryJobConfig(
         create_disposition="CREATE_IF_NEEDED",
         write_disposition="WRITE_TRUNCATE",
-        destination=f"sktaic-datahub.{temp_dataset}.{temp_table_name}",
+        destination=temp_table_name,
     )
     bq_client = get_bigquery_client()
     job = bq_client.query(query, job_config=jc)
     job.result()
+    t = temp_table_name.split(".")
 
-    return _bq_table_to_df(temp_dataset, temp_table_name, "*", spark_session=spark_session)
+    return _bq_table_to_df(t[1], t[2], "*", spark_session=spark_session)
 
 
 def load_query_result_to_table(dest_table, query, part_col_name=None, clustering_fields=None):
@@ -322,9 +322,9 @@ def load_query_result_to_table(dest_table, query, part_col_name=None, clustering
         job.result()
     else:
         temp_table_name = get_temp_table()
-        bq_client.query(f"CREATE OR REPLACE TABLE temp_1d.{temp_table_name} AS {query}").result()
+        bq_client.query(f"CREATE OR REPLACE TABLE {temp_table_name} AS {query}").result()
         if part_col_name:
-            schema = bq_client.get_table(f"temp_1d.{temp_table_name}").schema
+            schema = bq_client.get_table(temp_table_name).schema
             partition_type = [f for f in schema if f.name.lower() == part_col_name.lower()][0].field_type
             if partition_type == "DATE":
                 qjc = QueryJobConfig(
@@ -353,7 +353,7 @@ def load_query_result_to_table(dest_table, query, part_col_name=None, clustering
                 write_disposition="WRITE_TRUNCATE",
                 create_disposition="CREATE_IF_NEEDED",
             )
-        bq_client.query(f"SELECT * FROM temp_1d.{temp_table_name}", job_config=qjc).result()
+        bq_client.query(f"SELECT * FROM {temp_table_name}", job_config=qjc).result()
 
 
 def get_temp_table():
