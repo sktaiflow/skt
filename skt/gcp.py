@@ -291,9 +291,7 @@ def rdd_to_pandas(func):
 
 
 def bq_to_df(query, spark_session=None):
-    import time
-
-    temp_table_name = f"bq_to_df__{str(int(time.time()))}"
+    temp_table_name = get_temp_table()
     temp_dataset = "temp_1d"
     jc = QueryJobConfig(
         create_disposition="CREATE_IF_NEEDED",
@@ -309,7 +307,6 @@ def bq_to_df(query, spark_session=None):
 
 def load_query_result_to_table(dest_table, query, part_col_name=None, clustering_fields=None):
     bq_client = get_bigquery_client()
-    qjc = None
     print(query)
     if bq_table_exists(dest_table):
         table = bq_client.get_table(dest_table)
@@ -324,9 +321,7 @@ def load_query_result_to_table(dest_table, query, part_col_name=None, clustering
         job = bq_client.query(query, job_config=qjc)
         job.result()
     else:
-        import time
-
-        temp_table_name = f"load_query_result_to_table__{str(int(time.time()))}"
+        temp_table_name = get_temp_table()
         bq_client.query(f"CREATE OR REPLACE TABLE temp_1d.{temp_table_name} AS {query}").result()
         if part_col_name:
             schema = bq_client.get_table(f"temp_1d.{temp_table_name}").schema
