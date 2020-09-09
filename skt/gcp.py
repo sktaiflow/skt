@@ -30,25 +30,93 @@ def get_bigquery_storage_client(credentials=None):
     return bigquery_storage_v1beta1.BigQueryStorageClient(credentials=credentials)
 
 
-def _bq_query_to_new_table(
-    sql, destination=None, time_partitioning=None, range_partitioning=None, clustering_fields=None
-):
+def _get_result_schema(sql, bq_client=None):
     from google.cloud.bigquery.job import QueryJobConfig
 
-    bq = get_bigquery_client()
-    config = QueryJobConfig(
-        destination=destination,
-        write_disposition="WRITE_EMPTY",
-        create_disposition="CREATE_IF_NEEDED",
-        time_partitioning=time_partitioning,
-        range_partitioning=range_partitioning,
-        clustering_fields=clustering_fields,
+    if bq_client is None:
+        bq_client = get_bigquery_client()
+    job_config = QueryJobConfig(
+        dry_run=True,
+        use_query_cache=False,
     )
+    query_job = bq_client.query(sql, job_config=job_config)
+    schema = query_job._properties["statistics"]["query"]["schema"]
+    return schema
+
+
+def _get_result_column_type(sql, column, bq_client=None):
+    schema = _get_result_schema(sql, bq_client)
+    fields = schema["fields"]
+    r = [field["type"] for field in fields if field["name"] == column]
+    if r:
+        return r[0]
+    else:
+        raise ValueError(f"Cannot find column {column} in {sql}")
+
+
+def bq_insert_overwrite_table(sql, destination):
+    bq = get_bigquery_client()
+    table = bq.get_table(destination)
+    if table.range_partitioning or table.range_partitioning:
+        load_query_result_to_partitions(sql, destination)
+    else:
+        config = QueryJobConfig(
+            destination=destination,
+            write_disposition="WRITE_TRUNCATE",
+            create_disposition="CREATE_NEVER",
+            clustering_fields=table.clustering_fields,
+        )
     job = bq.query(sql, config)
     job.result()
     bq.close()
 
+
+def bq_ctas(sql, destination=None, partition_by=None, clustering_fields=None):
+    """
+    create new table and insert results
+    """
+    from google.cloud.bigquery.job import QueryJobConfig
+
+    bq = get_bigquery_client()
+    if partition_by:
+        partition_type = _get_result_column_type(sql, partition_by, bq_client=bq)
+        if partition_type == "DATE":
+            qjc = QueryJobConfig(
+                destination=destination,
+                write_disposition="WRITE_EMPTY",
+                create_disposition="CREATE_IF_NEEDED",
+                time_partitioning=TimePartitioning(field=partition_by),
+                clustering_fields=clustering_fields,
+            )
+        elif partition_type == "INTEGER":
+            qjc = QueryJobConfig(
+                destination=destination,
+                write_disposition="WRITE_EMPTY",
+                create_disposition="CREATE_IF_NEEDED",
+                range_partitioning=RangePartitioning(
+                    PartitionRange(start=200001, end=209912, interval=1), field=partition_by
+                ),
+                clustering_fields=clustering_fields,
+            )
+        else:
+            raise Exception(f"Partition column[{partition_by}] is neither DATE or INTEGER type.")
+    else:
+        qjc = QueryJobConfig(
+            destination=destination,
+            write_disposition="WRITE_EMPTY",
+            create_disposition="CREATE_IF_NEEDED",
+            clustering_fields=clustering_fields,
+        )
+
+    job = bq.query(sql, qjc)
+    job.result()
+    bq.close()
+
     return job.destination
+
+
+def _bq_query_to_new_table(sql, destination=None):
+    return bq_ctas(sql, destination)
 
 
 def _bq_query_to_existing_table(sql, destination):
@@ -424,3 +492,32 @@ def get_max_part(table_name):
         return int(max_part_value)
     else:
         raise Exception("Partition column is neither DATE or INTEGER type.")
+
+
+def bq_insert_overwrite(sql, destination, suffixes=None, partition=None, clustering_fields=None):
+    if suffixes:
+        bq_insert_overwrite_with_suffixes(sql, destination, suffixes, partition, clustering_fields)
+    else:
+        bq_insert_overwrite_without_suffixes(sql, destination, partition, clustering_fields)
+
+
+def bq_insert_overwrite_with_suffixes(sql, destination, suffixes, partition=None, clustering_fields=None):
+    temp_table = get_temp_table()
+    bq_ctas(sql, temp_table, partition_by=partition, clustering_fields=clustering_fields)
+    bq = get_bigquery_client()
+    r = bq.query(f"""select distinct {', '.join(suffixes)} from {temp_table}""")
+    for cols in r:
+        suffix = "".join([f"__{col}" for col in cols])
+        select_clause = f"select * except({', '.join(suffixes)}) from {temp_table}"
+        where_clause = " and ".join([f"{x[0]} = '{x[1]}'" for x in zip(suffixes, cols)])
+        target = "".join([destination, suffix])
+        sub_sql = f"{select_clause} where {where_clause}"
+        bq_insert_overwrite_without_suffixes(sub_sql, target, partition=partition, clustering_fields=clustering_fields)
+    bq.close()
+
+
+def bq_insert_overwrite_without_suffixes(sql, destination, partition=None, clustering_fields=None):
+    if bq_table_exists(destination):
+        bq_insert_overwrite_table(sql, destination)
+    else:
+        bq_ctas(sql, destination, partition_by=partition, clustering_fields=clustering_fields)
