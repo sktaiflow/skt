@@ -439,6 +439,22 @@ def load_query_result_to_partitions(query, dest_table):
 
     bq = get_bigquery_client()
     table = bq.get_table(dest_table)
+
+    """
+    Destination 이 파티션일 때는 임시테이블 만들지 않고 직접 저장
+    """
+    if "$" in dest_table:
+        qjc = QueryJobConfig(
+            destination=table,
+            write_disposition="WRITE_TRUNCATE",
+            create_disposition="CREATE_IF_NEEDED",
+            time_partitioning=table.time_partitioning,
+            range_partitioning=table.range_partitioning,
+            clustering_fields=table.clustering_fields,
+        )
+        bq.query(query, job_config=qjc).result()
+        return dest_table
+
     temp_table_id = get_temp_table()
     qjc = QueryJobConfig(
         destination=temp_table_id,
