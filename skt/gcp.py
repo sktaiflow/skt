@@ -57,7 +57,7 @@ def _get_result_column_type(sql, column, bq_client=None):
 def bq_insert_overwrite_table(sql, destination):
     bq = get_bigquery_client()
     table = bq.get_table(destination)
-    if table.range_partitioning or table.range_partitioning:
+    if table.time_partitioning or table.range_partitioning:
         load_query_result_to_partitions(sql, destination)
     else:
         config = QueryJobConfig(
