@@ -54,6 +54,21 @@ def _get_result_column_type(sql, column, bq_client=None):
         raise ValueError(f"Cannot find column {column} in {sql}")
 
 
+def _print_query_job_results(query_job):
+    try:
+        t = query_job.destination
+        dest_str = f"{t.project}.{t.dataset_id}.{t.table_id}"
+        print(
+            f"query: {query_job.query}\n"
+            f"destination: {dest_str}\n"
+            f"total_rows: {query_job.result().total_rows}\n"
+            f"slot_secs: {query_job.slot_millis/1000}\n"
+        )
+    except Exception as e:
+        print("Warning: exception on print statistics")
+        print(e)
+
+
 def bq_insert_overwrite_table(sql, destination):
     bq = get_bigquery_client()
     table = bq.get_table(destination)
@@ -68,6 +83,7 @@ def bq_insert_overwrite_table(sql, destination):
         )
         job = bq.query(sql, config)
         job.result()
+        _print_query_job_results(job)
         bq.close()
 
 
@@ -110,6 +126,7 @@ def bq_ctas(sql, destination=None, partition_by=None, clustering_fields=None):
 
     job = bq.query(sql, qjc)
     job.result()
+    _print_query_job_results(job)
     bq.close()
 
     return job.destination
@@ -452,7 +469,9 @@ def load_query_result_to_partitions(query, dest_table):
             range_partitioning=table.range_partitioning,
             clustering_fields=table.clustering_fields,
         )
-        bq.query(query, job_config=qjc).result()
+        job = bq.query(query, job_config=qjc)
+        job.result()
+        _print_query_job_results(job)
         return dest_table
 
     temp_table_id = get_temp_table()
@@ -480,12 +499,13 @@ def load_query_result_to_partitions(query, dest_table):
         if table.range_partitioning:
             part_name = table.range_partitioning.field
             query = f"select * from {temp_table_id} where {part_name}={p}"
-            bq.query(query, job_config=qjc).result()
         elif table.time_partitioning:
             part_name = table.time_partitioning.field
             partition = f"{p[:4]}-{p[4:6]}-{p[6:8]}"
             query = f"select * from {temp_table_id} where {part_name}='{partition}'"
-            bq.query(query, job_config=qjc).result()
+        job = bq.query(query, job_config=qjc)
+        job.result()
+        _print_query_job_results(job)
 
     return partitions
 
