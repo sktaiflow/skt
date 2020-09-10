@@ -66,9 +66,9 @@ def bq_insert_overwrite_table(sql, destination):
             create_disposition="CREATE_NEVER",
             clustering_fields=table.clustering_fields,
         )
-    job = bq.query(sql, config)
-    job.result()
-    bq.close()
+        job = bq.query(sql, config)
+        job.result()
+        bq.close()
 
 
 def bq_ctas(sql, destination=None, partition_by=None, clustering_fields=None):
