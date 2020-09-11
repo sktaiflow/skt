@@ -255,6 +255,14 @@ def bq_table_exists(table):
     return True
 
 
+def get_unhidden_partitions(table_name):
+    parts = filter(
+        lambda x: x not in ["__NULL__", "__UNPARTITIONED__"],
+        get_bigquery_client().list_partitions(table_name)
+    )
+    return parts
+
+
 def _get_partition_filter(dataset, table_name, partition):
     table = get_bigquery_client().get_table(f"{dataset}.{table_name}")
     if "timePartitioning" in table._properties:
@@ -484,7 +492,7 @@ def load_query_result_to_partitions(query, dest_table):
         clustering_fields=table.clustering_fields,
     )
     bq.query(query, job_config=qjc).result()
-    partitions = bq.list_partitions(temp_table_id)
+    partitions = get_unhidden_partitions(temp_table_id)
     for p in partitions:
         project_id, dataset_id, table_id = dest_table.split(".")
         ref = TableReference(DatasetReference(project_id, dataset_id), f"{table_id}${p}")
@@ -514,7 +522,7 @@ def get_max_part(table_name):
     from datetime import datetime
 
     bq_client = get_bigquery_client()
-    parts = filter(lambda x: x != "__NULL__", get_bigquery_client().list_partitions(table_name))
+    parts = get_unhidden_partitions(table_name)
 
     if not parts:
         raise Exception("Max partition value is invalid or null.")
