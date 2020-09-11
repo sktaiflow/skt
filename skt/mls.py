@@ -8,6 +8,8 @@ import os
 
 from skt.vault_utils import get_secrets
 
+from sktmls.meta_tables.meta_table import MetaTableClient
+
 
 MLS_MODEL_DIR = os.path.join(Path.home(), "mls_temp_dir")
 MODEL_BINARY_NAME = "model.joblib"
@@ -22,6 +24,109 @@ MLS_META_API_URL = "/api/v1/meta_tables"
 MLS_MLMODEL_API_URL = "/api/v1/models"
 
 
+def check_client_config(config):
+    client = MetaTableClient(**config)
+    client.list_meta_tables()
+    return config
+
+
+def generate_configs(env, user):
+    import pkg_resources
+    from packaging import version
+    from skt.vault_utils import get_secrets
+    from sktmls import MLSENV
+
+    mlsenv = MLSENV.STG
+    if env == "prd":
+        mlsenv = MLSENV.PRD
+    secrets = get_secrets(path="mls")
+    config = dict(
+        env=mlsenv,
+        username=secrets.get(f"{user}_id"),
+        password=secrets.get(f"{user}_pass"),
+    )
+
+    # sktmls version upgrade 후 수정
+    mls_v = pkg_resources.get_distribution("sktmls").version
+    if version.parse(mls_v) > version.parse("2020.8.29"):
+        from sktmls import MLSRuntimeENV
+
+        return [{**config, "runtime_env": r} for r in MLSRuntimeENV.list_items()]
+
+    return [config]
+
+
+def get_mls_config(env, user):
+    import concurrent.futures
+
+    configs = generate_configs(env=env, user=user)
+    e = concurrent.futures.ThreadPoolExecutor(max_workers=len(configs) + 1)
+    fs = [e.submit(check_client_config, conf) for conf in configs]
+    for f in concurrent.futures.as_completed(fs):
+        if f.exception() is None:
+            config = f.result()
+            break
+    e.shutdown(wait=False)
+    return config
+
+
+def get_mls_meta_table_client(env="stg", user="reco"):
+    config = get_mls_config(env, user)
+    return MetaTableClient(**config)
+
+
+def get_mls_component_client(env="stg", user="reco"):
+    from sktmls.components import ComponentClient
+
+    config = get_mls_config(env, user)
+    return ComponentClient(**config)
+
+
+def get_mls_dimension_client(env="stg", user="reco"):
+    from sktmls.dimensions import DimensionClient
+
+    config = get_mls_config(env, user)
+    return DimensionClient(**config)
+
+
+def get_mls_experiment_client(env="stg", user="reco"):
+    from sktmls.experiments import ExperimentClient
+
+    config = get_mls_config(env, user)
+    return ExperimentClient(**config)
+
+
+def get_mls_ml_model_client(env="stg", user="reco"):
+    from sktmls.models import MLModelClient
+
+    config = get_mls_config(env, user)
+    return MLModelClient(**config)
+
+
+def get_mls_model_registry(env="stg", user="reco"):
+    from sktmls import ModelRegistry
+
+    config = get_mls_config(env, user)
+    return ModelRegistry(env=config["env"], runtime_env=config["runtime_env"])
+
+
+def create_or_update_meta_table(table_name, schema=None, env="stg", user="reco"):
+    c = get_mls_meta_table_client(env=env, user=user)
+    if c.meta_table_exists(name=table_name):
+        t = c.get_meta_table(name=table_name)
+        if schema:
+            c.update_meta_table(meta_table=t, schema=schema)
+    else:
+        c.create_meta_table(name=table_name, schema=schema)
+
+
+def upsert_meta_table(table_name, items_dict, env="stg", user="reco"):
+    c = get_mls_meta_table_client(env=env, user=user)
+    t = c.get_meta_table(name=table_name)
+    items = c.create_meta_items(meta_table=t, items_dict=items_dict)
+    return len(items)
+
+
 def set_model_name(comm_db, params, user="reco", edd: bool = False):
     secret = get_secrets("mls")
     token = secret.get("user_token").get(user)
@@ -32,7 +137,9 @@ def set_model_name(comm_db, params, user="reco", edd: bool = False):
         url = secret["ab_onprem_prd_url"] if edd else secret["ab_prd_url"]
         url = f"{url}{MLS_COMPONENTS_API_URL}"
     requests.post(
-        url, json=params, headers={"Authorization": f"Basic {{{token}}}"},
+        url,
+        json=params,
+        headers={"Authorization": f"Basic {{{token}}}"},
     )
 
 
