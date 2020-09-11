@@ -1,0 +1,8 @@
+# Book settings
+title: SKT Package Guide
+author: AIDP
+logo: logo.png
+
+latex:
+  latex_documents:
+    targetname: book.tex
