@@ -26,7 +26,14 @@ eda_logger.addHandler(stream_hander)
 
 
 def numeric_eda_plot(
-    df, feature_list, label_col, cols=2, n_samples=-1, plot_type="density", stat_yn=False, figsize=(7, 4),
+    df,
+    feature_list,
+    label_col,
+    cols=2,
+    n_samples=-1,
+    plot_type="density",
+    stat_yn=False,
+    figsize=(7, 4),
 ):
     """
     Numeric feature에 대한 EDA Plot function
@@ -133,8 +140,14 @@ def numeric_eda_plot(
                         np.mean(orig_tmp_df[orig_tmp_df[label_col] == lb][col]),
                         np.min(orig_tmp_df[orig_tmp_df[label_col] == lb][col]),
                         np.max(orig_tmp_df[orig_tmp_df[label_col] == lb][col]),
-                        np.quantile(orig_tmp_df[orig_tmp_df[label_col] == lb][col], 0.25,),
-                        np.quantile(orig_tmp_df[orig_tmp_df[label_col] == lb][col], 0.75,),
+                        np.quantile(
+                            orig_tmp_df[orig_tmp_df[label_col] == lb][col],
+                            0.25,
+                        ),
+                        np.quantile(
+                            orig_tmp_df[orig_tmp_df[label_col] == lb][col],
+                            0.75,
+                        ),
                     ]
                     tmp_stats_text = " | ".join([pattern % i for i in tmp_stats])
                     stats.append("[{}] ".format(lb) + tmp_stats_text)
@@ -148,8 +161,14 @@ def numeric_eda_plot(
                         np.mean(orig_tmp_df[orig_tmp_df[label_col] == lb][col]),
                         np.min(orig_tmp_df[orig_tmp_df[label_col] == lb][col]),
                         np.max(orig_tmp_df[orig_tmp_df[label_col] == lb][col]),
-                        np.quantile(orig_tmp_df[orig_tmp_df[label_col] == lb][col], 0.25,),
-                        np.quantile(orig_tmp_df[orig_tmp_df[label_col] == lb][col], 0.75,),
+                        np.quantile(
+                            orig_tmp_df[orig_tmp_df[label_col] == lb][col],
+                            0.25,
+                        ),
+                        np.quantile(
+                            orig_tmp_df[orig_tmp_df[label_col] == lb][col],
+                            0.75,
+                        ),
                     ]
                     tmp_stats_text = " | ".join([pattern % i for i in tmp_stats])
                     stats.append("[{}] ".format(lb) + tmp_stats_text)
@@ -249,7 +268,12 @@ def categorical_eda_plot(df, feature_list, label_col, cols=2, n_samples=-1, figs
         )
 
         sns.barplot(
-            x=label_col, y="perc", hue=col, data=tmp_df, dodge=False, ax=temp_ax,
+            x=label_col,
+            y="perc",
+            hue=col,
+            data=tmp_df,
+            dodge=False,
+            ax=temp_ax,
         )
         temp_ax.legend(title="")
 
