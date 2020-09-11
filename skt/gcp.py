@@ -35,10 +35,7 @@ def _get_result_schema(sql, bq_client=None):
 
     if bq_client is None:
         bq_client = get_bigquery_client()
-    job_config = QueryJobConfig(
-        dry_run=True,
-        use_query_cache=False,
-    )
+    job_config = QueryJobConfig(dry_run=True, use_query_cache=False,)
     query_job = bq_client.query(sql, job_config=job_config)
     schema = query_job._properties["statistics"]["query"]["schema"]
     return schema
@@ -257,8 +254,7 @@ def bq_table_exists(table):
 
 def get_unhidden_partitions(table_name):
     parts = filter(
-        lambda x: x not in ["__NULL__", "__UNPARTITIONED__"],
-        get_bigquery_client().list_partitions(table_name)
+        lambda x: x not in ["__NULL__", "__UNPARTITIONED__"], get_bigquery_client().list_partitions(table_name)
     )
     return parts
 
@@ -386,9 +382,7 @@ def rdd_to_pandas(func):
 def bq_to_df(query, spark_session=None):
     temp_table_name = get_temp_table()
     jc = QueryJobConfig(
-        create_disposition="CREATE_IF_NEEDED",
-        write_disposition="WRITE_TRUNCATE",
-        destination=temp_table_name,
+        create_disposition="CREATE_IF_NEEDED", write_disposition="WRITE_TRUNCATE", destination=temp_table_name,
     )
     bq_client = get_bigquery_client()
     job = bq_client.query(query, job_config=jc)
@@ -442,9 +436,7 @@ def load_query_result_to_table(dest_table, query, part_col_name=None, clustering
                 raise Exception(f"Partition column[{part_col_name}] is neither DATE or INTEGER type.")
         else:
             qjc = QueryJobConfig(
-                destination=dest_table,
-                write_disposition="WRITE_TRUNCATE",
-                create_disposition="CREATE_IF_NEEDED",
+                destination=dest_table, write_disposition="WRITE_TRUNCATE", create_disposition="CREATE_IF_NEEDED",
             )
         bq_client.query(f"SELECT * FROM {temp_table_name}", job_config=qjc).result()
 

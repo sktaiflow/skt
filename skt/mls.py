@@ -40,11 +40,7 @@ def generate_configs(env, user):
     if env == "prd":
         mlsenv = MLSENV.PRD
     secrets = get_secrets(path="mls")
-    config = dict(
-        env=mlsenv,
-        username=secrets.get(f"{user}_id"),
-        password=secrets.get(f"{user}_pass"),
-    )
+    config = dict(env=mlsenv, username=secrets.get(f"{user}_id"), password=secrets.get(f"{user}_pass"),)
 
     # sktmls version upgrade 후 수정
     mls_v = pkg_resources.get_distribution("sktmls").version
@@ -137,9 +133,7 @@ def set_model_name(comm_db, params, user="reco", edd: bool = False):
         url = secret["ab_onprem_prd_url"] if edd else secret["ab_prd_url"]
         url = f"{url}{MLS_COMPONENTS_API_URL}"
     requests.post(
-        url,
-        json=params,
-        headers={"Authorization": f"Basic {{{token}}}"},
+        url, json=params, headers={"Authorization": f"Basic {{{token}}}"},
     )
 
 
