@@ -4,7 +4,12 @@ from skt.ye import hive_to_pandas, slack_send
 
 # post_filter 이후, context_mapping 을 마친 post_filter_with_context_id Table 생성
 def context_mapping(
-    meta_table=None, comm_db=None, reco_type=None, model_name=None, dt=None, feature_ym=None,
+    meta_table=None,
+    comm_db=None,
+    reco_type=None,
+    model_name=None,
+    dt=None,
+    feature_ym=None,
 ):
 
     # 0. item_reco_predict_post_filter with impression 'Y' table LOAD

@@ -24,6 +24,7 @@ jobs:
         setuptools
         wheel
         --user
+    - run: pip install --upgrade pip
     - name: Build a binary wheel and a source tarball
       run: >-
         python
