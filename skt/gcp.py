@@ -57,7 +57,7 @@ def _get_result_column_type(sql, column, bq_client=None):
 def _print_query_job_results(query_job):
     try:
         t = query_job.destination
-        dest_str = f"{t.project}.{t.dataset_id}.{t.table_id}"
+        dest_str = f"{t.project}.{t.dataset_id}.{t.table_id}" if t else "no destination"
         print(
             f"query: {query_job.query}\n"
             f"destination: {dest_str}\n"
@@ -255,6 +255,13 @@ def bq_table_exists(table):
     return True
 
 
+def get_unhidden_partitions(table_name):
+    parts = filter(
+        lambda x: x not in ["__NULL__", "__UNPARTITIONED__"], get_bigquery_client().list_partitions(table_name)
+    )
+    return parts
+
+
 def _get_partition_filter(dataset, table_name, partition):
     table = get_bigquery_client().get_table(f"{dataset}.{table_name}")
     if "timePartitioning" in table._properties:
@@ -450,6 +457,15 @@ def get_temp_table():
     return full_table_id
 
 
+def _get_partition_name(table):
+    if table.range_partitioning:
+        return table.range_partitioning.field
+    elif table.time_partitioning:
+        return table.time_partitioning.field
+    else:
+        raise Exception(f"Table[{table}] is not partitioned.")
+
+
 def load_query_result_to_partitions(query, dest_table):
     from google.cloud.bigquery.table import TableReference
     from google.cloud.bigquery.dataset import DatasetReference
@@ -486,26 +502,43 @@ def load_query_result_to_partitions(query, dest_table):
     bq.query(query, job_config=qjc).result()
     partitions = bq.list_partitions(temp_table_id)
     for p in partitions:
-        project_id, dataset_id, table_id = dest_table.split(".")
-        ref = TableReference(DatasetReference(project_id, dataset_id), f"{table_id}${p}")
-        qjc = QueryJobConfig(
-            destination=ref,
-            write_disposition="WRITE_TRUNCATE",
-            create_disposition="CREATE_IF_NEEDED",
-            time_partitioning=table.time_partitioning,
-            range_partitioning=table.range_partitioning,
-            clustering_fields=table.clustering_fields,
-        )
-        if table.range_partitioning:
-            part_name = table.range_partitioning.field
-            query = f"select * from {temp_table_id} where {part_name}={p}"
-        elif table.time_partitioning:
-            part_name = table.time_partitioning.field
-            partition = f"{p[:4]}-{p[4:6]}-{p[6:8]}"
-            query = f"select * from {temp_table_id} where {part_name}='{partition}'"
-        job = bq.query(query, job_config=qjc)
-        job.result()
-        _print_query_job_results(job)
+        part_name = _get_partition_name(table)
+        if p == "__NULL__":
+            if table.range_partitioning:
+                columns = ["NULL" if f.name.lower() == part_name.lower() else f.name for f in table.schema]
+            elif table.time_partitioning:
+                columns = ["DATE(NULL)" if f.name.lower() == part_name.lower() else f.name for f in table.schema]
+            job = bq.query(
+                f"""
+                DELETE FROM `{dest_table}` WHERE {part_name} IS NULL
+                ;
+                INSERT INTO `{dest_table}`
+                SELECT {', '.join(columns)}
+                FROM   `{temp_table_id}`
+                WHERE  {part_name} IS NULL
+            """
+            )
+            job.result()
+            _print_query_job_results(job)
+        else:
+            project_id, dataset_id, table_id = dest_table.split(".")
+            ref = TableReference(DatasetReference(project_id, dataset_id), f"{table_id}${p}")
+            qjc = QueryJobConfig(
+                destination=ref,
+                write_disposition="WRITE_TRUNCATE",
+                create_disposition="CREATE_IF_NEEDED",
+                time_partitioning=table.time_partitioning,
+                range_partitioning=table.range_partitioning,
+                clustering_fields=table.clustering_fields,
+            )
+            if table.range_partitioning:
+                query = f"select * from {temp_table_id} where {part_name}={p}"
+            elif table.time_partitioning:
+                partition = f"{p[:4]}-{p[4:6]}-{p[6:8]}"
+                query = f"select * from {temp_table_id} where {part_name}='{partition}'"
+            job = bq.query(query, job_config=qjc)
+            job.result()
+            _print_query_job_results(job)
 
     return partitions
 
@@ -514,7 +547,7 @@ def get_max_part(table_name):
     from datetime import datetime
 
     bq_client = get_bigquery_client()
-    parts = filter(lambda x: x != "__NULL__", get_bigquery_client().list_partitions(table_name))
+    parts = get_unhidden_partitions(table_name)
 
     if not parts:
         raise Exception("Max partition value is invalid or null.")
