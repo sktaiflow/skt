@@ -503,19 +503,21 @@ def load_query_result_to_partitions(query, dest_table):
     partitions = bq.list_partitions(temp_table_id)
     for p in partitions:
         part_name = _get_partition_name(table)
-        if p == '__NULL__':
+        if p == "__NULL__":
             if table.range_partitioning:
                 columns = ["NULL" if f.name.lower() == part_name.lower() else f.name for f in table.schema]
             elif table.time_partitioning:
                 columns = ["DATE(NULL)" if f.name.lower() == part_name.lower() else f.name for f in table.schema]
-            job = bq.query(f"""
+            job = bq.query(
+                f"""
                 DELETE FROM `{dest_table}` WHERE {part_name} IS NULL
                 ;
                 INSERT INTO `{dest_table}`
                 SELECT {', '.join(columns)}
                 FROM   `{temp_table_id}`
                 WHERE  {part_name} IS NULL
-            """)
+            """
+            )
             job.result()
             _print_query_job_results(job)
         else:
