@@ -1,5 +1,7 @@
 - file: intro
+  sections:
+    - file: packages
 - file: content
   sections:
-    - file: markdown
+    - file: mls
     - file: notebooks
