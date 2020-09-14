@@ -3,6 +3,9 @@ title: SKT Package Guide
 author: AIDP
 logo: logo.png
 
+execute:
+  timeout: 300
+
 latex:
   latex_documents:
     targetname: book.tex
