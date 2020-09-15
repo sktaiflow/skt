@@ -32,7 +32,7 @@ air = [
 
 setuptools.setup(
     name="skt",
-    version="0.2.37",
+    version="0.2.38",
     author="SKT",
     author_email="all@sktai.io",
     description="SKT package",
@@ -62,7 +62,7 @@ setuptools.setup(
         "pandas_gbq>=0.13.2",
         "google-cloud-bigquery-storage",
         "grpcio<2.0dev",
-        "sqlalchemy==1.3.11",
+        "sqlalchemy>=1.3.18",
         "packaging",
         "tqdm>=4.48.2",
         "ipywidgets",
