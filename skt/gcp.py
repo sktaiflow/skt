@@ -335,15 +335,53 @@ def bq_table_to_pandas(dataset, table_name, col_list="*", partition=None, where=
     return bq_to_pandas(query=query)
 
 
-def _df_to_bq_table(df, dataset, table_name, partition=None, mode="overwrite"):
+def _df_to_bq_table(
+        df, dataset, table_name, partition=None, partition_field=None, clustering_fields=None, mode="overwrite"):
     import base64
     from skt.vault_utils import get_secrets
 
     key = get_secrets("gcp/sktaic-datahub/dataflow")["config"]
     table = f"{dataset}.{table_name}${partition}" if partition else f"{dataset}.{table_name}"
-    df.write.format("bigquery").option("project", "sktaic-datahub").option(
-        "credentials", base64.b64encode(key.encode()).decode()
-    ).option("table", table).option("temporaryGcsBucket", "temp-seoul-7d").save(mode=mode)
+
+    bq = get_bigquery_client()
+    if bq_table_exists(f"{dataset}.{table_name}"):
+        target_table = bq.get_table(table)
+        if partition:
+            df.write.format("bigquery") \
+                .option("project", "sktaic-datahub") \
+                .option("credentials", base64.b64encode(key.encode()).decode()) \
+                .option("temporaryGcsBucket", "temp-seoul-7d") \
+                .option("partitionField", partition_field) \
+                .option("clusteredFields", ",".join(clustering_fields)) \
+                .save(path=f"{dataset}.{table_name}${partition}", mode=mode)
+        elif target_table.time_partitioning or target_table.range_partitioning:
+            if partition_field:
+                df.distinct()
+                df.write.format("bigquery") \
+                    .option("project", "sktaic-datahub") \
+                    .option("credentials", base64.b64encode(key.encode()).decode()) \
+                    .option("temporaryGcsBucket", "temp-seoul-7d") \
+                    .option("partitionField", partition_field) \
+                    .option("clusteredFields", ",".join(clustering_fields)) \
+                    .save(path=table, mode=mode)
+            else:
+
+        else:
+            df.write.format("bigquery") \
+                .option("project", "sktaic-datahub") \
+                .option("credentials", base64.b64encode(key.encode()).decode()) \
+                .option("temporaryGcsBucket", "temp-seoul-7d") \
+                .option("partitionField", partition_field) \
+                .option("clusteredFields", ",".join(clustering_fields)) \
+                .save(path=table, mode=mode)
+    else:
+        df.write.format("bigquery") \
+            .option("project", "sktaic-datahub") \
+            .option("credentials", base64.b64encode(key.encode()).decode()) \
+            .option("temporaryGcsBucket", "temp-seoul-7d") \
+            .option("partitionField", partition_field) \
+            .option("clusteredFields", ",".join(clustering_fields)) \
+            .save(path=table, mode=mode)
 
 
 def df_to_bq_table(df, dataset, table_name, partition=None, mode="overwrite"):
