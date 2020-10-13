@@ -357,15 +357,19 @@ def _df_to_bq_table(
     df.save(mode=mode)
 
 
-def df_to_bq_table(df, dataset, table_name, partition=None, mode="overwrite"):
-    _df_to_bq_table(df, dataset, table_name, partition, mode)
+def df_to_bq_table(
+    df, dataset, table_name, partition=None, partition_field=None, clustering_fields=None, mode="overwrite"
+):
+    _df_to_bq_table(df, dataset, table_name, partition, partition_field, clustering_fields, mode)
 
 
-def parquet_to_bq_table(parquet_dir, dataset, table_name, partition=None, mode="overwrite"):
+def parquet_to_bq_table(
+    parquet_dir, dataset, table_name, partition=None, partition_field=None, clustering_fields=None, mode="overwrite"
+):
     try:
         spark = get_spark()
         df = spark.read.format("parquet").load(parquet_dir)
-        _df_to_bq_table(df, dataset, table_name, partition, mode)
+        _df_to_bq_table(df, dataset, table_name, partition, partition_field, clustering_fields, mode)
     finally:
         spark.stop()
 
