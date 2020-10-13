@@ -342,13 +342,16 @@ def _df_to_bq_table(
 
     key = get_secrets("gcp/sktaic-datahub/dataflow")["config"]
     table = f"{dataset}.{table_name}${partition}" if partition else f"{dataset}.{table_name}"
-    df.write.format("bigquery")\
+    df = df.write.format("bigquery")\
         .option("project", "sktaic-datahub")\
         .option("credentials", base64.b64encode(key.encode()).decode())\
         .option("table", table)\
-        .option("partitionField", partition_field)\
-        .option("clusteredFields", clustering_fields)\
-        .option("temporaryGcsBucket", "temp-seoul-7d").save(mode=mode)
+        .option("temporaryGcsBucket", "temp-seoul-7d")
+    if partition_field:
+        df = df.option("partitionField", partition_field)
+    if clustering_fields:
+        df = df.option("clusteredFields", ",".join(clustering_fields))
+    df.save(mode=mode)
 
 
 def df_to_bq_table(df, dataset, table_name, partition=None, mode="overwrite"):
