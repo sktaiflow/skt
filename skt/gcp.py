@@ -1,7 +1,7 @@
 from google.cloud.bigquery import RangePartitioning, PartitionRange, TimePartitioning
 
 from skt.ye import get_spark
-from google.cloud.bigquery.job import QueryJobConfig
+from google.cloud.bigquery.job import QueryJobConfig, LoadJobConfig
 from google.cloud.exceptions import NotFound
 
 PROJECT_ID = "sktaic-datahub"
@@ -335,15 +335,26 @@ def bq_table_to_pandas(dataset, table_name, col_list="*", partition=None, where=
     return bq_to_pandas(query=query)
 
 
-def _df_to_bq_table(df, dataset, table_name, partition=None, mode="overwrite"):
+def _df_to_bq_table(
+    df, dataset, table_name, partition=None, partition_field=None, clustering_fields=None, mode="overwrite"
+):
     import base64
     from skt.vault_utils import get_secrets
 
     key = get_secrets("gcp/sktaic-datahub/dataflow")["config"]
     table = f"{dataset}.{table_name}${partition}" if partition else f"{dataset}.{table_name}"
-    df.write.format("bigquery").option("project", "sktaic-datahub").option(
-        "credentials", base64.b64encode(key.encode()).decode()
-    ).option("table", table).option("temporaryGcsBucket", "temp-seoul-7d").save(mode=mode)
+    df = (
+        df.write.format("bigquery")
+        .option("project", "sktaic-datahub")
+        .option("credentials", base64.b64encode(key.encode()).decode())
+        .option("table", table)
+        .option("temporaryGcsBucket", "temp-seoul-7d")
+    )
+    if partition_field:
+        df = df.option("partitionField", partition_field)
+    if clustering_fields:
+        df = df.option("clusteredFields", ",".join(clustering_fields))
+    df.save(mode=mode)
 
 
 def df_to_bq_table(df, dataset, table_name, partition=None, mode="overwrite"):
@@ -359,13 +370,63 @@ def parquet_to_bq_table(parquet_dir, dataset, table_name, partition=None, mode="
         spark.stop()
 
 
-def pandas_to_bq_table(pd_df, dataset, table_name, partition=None, mode="overwrite"):
+def pandas_to_bq_table(
+    pd_df, dataset, table_name, partition=None, partition_field=None, clustering_fields=None, mode="overwrite"
+):
     try:
         spark = get_spark()
         spark_df = spark.createDataFrame(pd_df)
-        _df_to_bq_table(spark_df, dataset, table_name, partition, mode)
+        _df_to_bq_table(spark_df, dataset, table_name, partition, partition_field, clustering_fields, mode)
     finally:
         spark.stop()
+
+
+def pandas_to_bq(pd_df, destination, partition=None, clustering_fields=None, overwrite=True):
+    range_partitioning = None
+    time_partitioning = None
+    bq = get_bigquery_client()
+    if bq_table_exists(destination):
+        target_table = bq.get_table(destination)
+        range_partitioning = target_table.range_partitioning
+        time_partitioning = target_table.time_partitioning
+    else:
+        if partition:
+            from pandas.api.types import is_integer_dtype
+            import datetime
+
+            if is_integer_dtype(pd_df[partition][0]):
+                range_partitioning = RangePartitioning(
+                    PartitionRange(start=200001, end=209912, interval=1), field=partition
+                )
+            elif isinstance(pd_df[partition][0], datetime.date):
+                time_partitioning = TimePartitioning(field=partition)
+            else:
+                raise Exception("Partition type must be either date or range.")
+
+    if time_partitioning or range_partitioning:
+        if time_partitioning:
+            input_partitions = [(p.strftime("%Y%m%d"), p) for p in set(pd_df[partition])]
+        elif range_partitioning:
+            input_partitions = [(p, p) for p in set(pd_df[partition])]
+        for part, part_val in input_partitions:
+            bq.load_table_from_dataframe(
+                dataframe=pd_df[pd_df[partition] == part_val],
+                destination=f"{destination}${part}",
+                job_config=LoadJobConfig(
+                    create_disposition="CREATE_IF_NEEDED",
+                    write_disposition="WRITE_TRUNCATE" if overwrite else "WRITE_APPEND",
+                    time_partitioning=time_partitioning,
+                    range_partitioning=range_partitioning,
+                    clustering_fields=clustering_fields,
+                ),
+            ).result()
+    else:
+        bq.load_table_from_dataframe(
+            dataframe=pd_df,
+            destination=destination,
+            job_config=LoadJobConfig(create_disposition="CREATE_IF_NEEDED", write_disposition="WRITE_TRUNCATE"),
+        ).result()
+    bq.close()
 
 
 # decorator for rdd to pandas in mapPartitions in Spark
