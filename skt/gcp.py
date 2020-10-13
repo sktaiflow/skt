@@ -336,17 +336,20 @@ def bq_table_to_pandas(dataset, table_name, col_list="*", partition=None, where=
 
 
 def _df_to_bq_table(
-        df, dataset, table_name, partition=None, partition_field=None, clustering_fields=None, mode="overwrite"):
+    df, dataset, table_name, partition=None, partition_field=None, clustering_fields=None, mode="overwrite"
+):
     import base64
     from skt.vault_utils import get_secrets
 
     key = get_secrets("gcp/sktaic-datahub/dataflow")["config"]
     table = f"{dataset}.{table_name}${partition}" if partition else f"{dataset}.{table_name}"
-    df = df.write.format("bigquery")\
-        .option("project", "sktaic-datahub")\
-        .option("credentials", base64.b64encode(key.encode()).decode())\
-        .option("table", table)\
+    df = (
+        df.write.format("bigquery")
+        .option("project", "sktaic-datahub")
+        .option("credentials", base64.b64encode(key.encode()).decode())
+        .option("table", table)
         .option("temporaryGcsBucket", "temp-seoul-7d")
+    )
     if partition_field:
         df = df.option("partitionField", partition_field)
     if clustering_fields:
@@ -368,7 +371,8 @@ def parquet_to_bq_table(parquet_dir, dataset, table_name, partition=None, mode="
 
 
 def pandas_to_bq_table(
-        pd_df, dataset, table_name, partition=None, partition_field=None, clustering_fields=None, mode="overwrite"):
+    pd_df, dataset, table_name, partition=None, partition_field=None, clustering_fields=None, mode="overwrite"
+):
     try:
         spark = get_spark()
         spark_df = spark.createDataFrame(pd_df)
@@ -389,6 +393,7 @@ def pandas_to_bq(pd_df, destination, partition=None, clustering_fields=None, ove
         if partition:
             from pandas.api.types import is_integer_dtype
             import datetime
+
             if is_integer_dtype(pd_df[partition][0]):
                 range_partitioning = RangePartitioning(
                     PartitionRange(start=200001, end=209912, interval=1), field=partition
@@ -412,17 +417,14 @@ def pandas_to_bq(pd_df, destination, partition=None, clustering_fields=None, ove
                     write_disposition="WRITE_TRUNCATE" if overwrite else "WRITE_APPEND",
                     time_partitioning=time_partitioning,
                     range_partitioning=range_partitioning,
-                    clustering_fields=clustering_fields
-                )
+                    clustering_fields=clustering_fields,
+                ),
             ).result()
     else:
         bq.load_table_from_dataframe(
             dataframe=pd_df,
             destination=destination,
-            job_config=LoadJobConfig(
-                create_disposition="CREATE_IF_NEEDED",
-                write_disposition="WRITE_TRUNCATE"
-            )
+            job_config=LoadJobConfig(create_disposition="CREATE_IF_NEEDED", write_disposition="WRITE_TRUNCATE"),
         ).result()
     bq.close()
 
