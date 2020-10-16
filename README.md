@@ -10,6 +10,16 @@ Resources are abstracted into package structure.
 ## Usage
 
 
+Hive metastore
+```python
+from skt.ye import get_hms
+
+c = get_hms()
+c.get_partition_names("db", "table")
+c.close()
+```
+
+
 Hash and unhash
 ```python
 from skt.lake import hash_s

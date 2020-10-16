@@ -32,7 +32,7 @@ air = [
 
 setuptools.setup(
     name="skt",
-    version="0.2.41",
+    version="0.2.42",
     author="SKT",
     author_email="all@sktai.io",
     description="SKT package",
@@ -66,6 +66,7 @@ setuptools.setup(
         "packaging",
         "tqdm>=4.48.2",
         "ipywidgets",
+        "hmsclient-hive-3",
     ],
     entry_points={"console_scripts": ["nes = skt.nes:nes_cli"]},
     extras_require={"air": air},

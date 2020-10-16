@@ -1,6 +1,17 @@
 from skt.vault_utils import get_secrets
 
 
+def get_hms():
+    from hmsclient import hmsclient
+
+    s = get_secrets(path="ye/hivemetastore")
+    host = s["ip"]
+    port = s["port"]
+    client = hmsclient.HMSClient(host=host, port=port)
+    client.open()
+    return client
+
+
 def get_hive_conn():
     from pyhive import hive
 
