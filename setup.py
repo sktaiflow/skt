@@ -66,6 +66,7 @@ setuptools.setup(
         "packaging",
         "tqdm>=4.48.2",
         "ipywidgets",
+        "hmsclient-hive-3",
     ],
     entry_points={"console_scripts": ["nes = skt.nes:nes_cli"]},
     extras_require={"air": air},
