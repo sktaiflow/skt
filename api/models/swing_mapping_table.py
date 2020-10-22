@@ -43,7 +43,6 @@ class SwingMappingTable(Base):
     @staticmethod
     @provide_session
     def get_table(table_id, session=None):
-
         def row2dict(row):
             d = {}
             for column in row.__table__.columns:
@@ -69,4 +68,3 @@ class SwingMappingTable(Base):
         r = vars(t).copy()
         r.pop("_sa_instance_state", None)
         return r
-
