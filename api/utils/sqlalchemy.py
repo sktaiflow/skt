@@ -15,7 +15,7 @@ def get_secrets(path, parse_data=True):
     return data
 
 
-engine = create_engine(get_secrets(path="etl_meta")["conn_string"])
+engine = create_engine(get_secrets(path="etl_meta")["conn_string"], pool_pre_ping=True)
 
 
 def get_session():
