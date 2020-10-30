@@ -110,6 +110,13 @@ def get_mls_model_registry(env="stg", user="reco"):
     return ModelRegistry(env=config["env"], runtime_env=config["runtime_env"])
 
 
+def get_channel_client(env="stg", user="reco"):
+    from sktmls.channels import ChannelClient
+
+    config = get_mls_config(env, user)
+    return ChannelClient(**config)
+
+
 def get_mls_profile_api_client(env="stg", user="reco"):
     from sktmls.apis.profile_api import MLSProfileAPIClient
 
