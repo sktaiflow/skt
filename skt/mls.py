@@ -110,11 +110,25 @@ def get_mls_model_registry(env="stg", user="reco"):
     return ModelRegistry(env=config["env"], runtime_env=config["runtime_env"])
 
 
+def get_channel_client(env="stg", user="reco"):
+    from sktmls.channels import ChannelClient
+
+    config = get_mls_config(env, user)
+    return ChannelClient(**config)
+
+
 def get_mls_profile_api_client(env="stg", user="reco"):
     from sktmls.apis.profile_api import MLSProfileAPIClient
 
     config = dict({conf for conf in get_mls_config(env, user).items() if conf[0] in ["env", "runtime_env"]})
     return MLSProfileAPIClient(**config, **get_secrets("mls").get("reco_api"))
+
+
+def get_mls_recommendation_api_client(env="stg", user="reco"):
+    from sktmls.apis.recommendation_api import MLSRecommendationAPIClient
+
+    config = dict({conf for conf in get_mls_config(env, user).items() if conf[0] in ["env", "runtime_env"]})
+    return MLSRecommendationAPIClient(**config, **get_secrets("mls").get("reco_api"))
 
 
 def create_or_update_meta_table(table_name, schema=None, env="stg", user="reco"):
