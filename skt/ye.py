@@ -223,6 +223,34 @@ def slack_send(
         raise Exception(r.json())
 
 
+def send_email(subject, text, send_from, send_to, attachment=None):
+    '''
+    :param str attachment: Attachment to send as .txt file with email
+    '''
+    import smtplib
+    from email.mime.application import MIMEApplication
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.text import MIMEText
+    from email.utils import formatdate
+    from skt.vault_utils import get_secrets
+    c = get_secrets(path='mail')
+    host, port = c['smtp_host'], c['smtp_port']
+    msg = MIMEMultipart()
+    msg['From'] = send_from
+    msg['To'] = send_to
+    msg['Date'] = formatdate(localtime=True)
+    msg['Subject'] = subject
+    msg.attach(MIMEText(text))
+
+    if attachment:
+        part = MIMEApplication(attachment, NAME=subject)
+        part.add_header('Content-Disposition', f'attachment; filename={subject}.txt')
+        msg.attach(part)
+
+    with smtplib.SMTP(host, port) as smtp:
+        return smtp.sendmail(send_from, send_to.split(','), msg.as_string())
+
+
 def get_github_util():
     from skt.github_utils import GithubUtil
 
