@@ -88,7 +88,7 @@ def get_spark(scale=0, queue=None):
             .config("spark.yarn.appMasterEnv.ARROW_PRE_0_15_IPC_FORMAT", "1")
             .config(
                 "spark.jars",
-                "gs://external_libs/spark/jars/spark-bigquery-with-dependencies_2.11-0.16.1.jar",
+                "hdfs:///jars/spark-bigquery-with-dependencies_2.11-0.17.3.jar",
             )
             .enableHiveSupport()
             .getOrCreate()
