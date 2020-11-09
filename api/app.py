@@ -8,6 +8,7 @@ from flask_cors import CORS
 from models.saturn_table import SaturnTable
 from models.de_identification_table import DeIdentificationTable
 from models.swing_mapping_table import SwingMappingTable
+from models.swing_pk_table import SwingPKTable
 
 from initialize import init_db
 
@@ -130,4 +131,41 @@ def delete_swing_mapping_table(table_id):
 @app.route("/v1/swing_mapping_table/<string:table_id>", methods=["PATCH"])
 def update_swing_mapping_table(table_id):
     r = SwingMappingTable.update(table_id, request.json)
+    return jsonify(r), 204
+
+
+# swing pk table
+@app.route("/v1/swing_pk", methods=["POST"])
+def post_swing_pk_table():
+    if not request.json:
+        abort(400)
+    table = SwingPKTable(**request.json)
+    try:
+        SwingPKTable.add(table)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+    return "", 201
+
+
+@app.route("/v1/swing_pk", methods=["GET"])
+def get_swing_pk_tables():
+    tables = SwingPKTable.get_all()
+    return jsonify(tables), 200
+
+
+@app.route("/v1/swing_pk/<string:table_id>", methods=["GET"])
+def get_swing_pk_table(table_id):
+    tables = SwingPKTable.get_table(table_id)
+    return jsonify(tables), 200
+
+
+@app.route("/v1/swing_pk/<string:table_id>", methods=["DELETE"])
+def delete_swing_pk_table(table_id):
+    SwingPKTable.delete(table_id)
+    return "", 202
+
+
+@app.route("/v1/swing_pk/<string:table_id>", methods=["PATCH"])
+def update_swing_pk_table(table_id):
+    r = SwingPKTable.update(table_id, request.json)
     return jsonify(r), 204
