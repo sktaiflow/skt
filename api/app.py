@@ -8,6 +8,7 @@ from flask_cors import CORS
 from models.saturn_table import SaturnTable
 from models.de_identification_table import DeIdentificationTable
 from models.swing_mapping_table import SwingMappingTable
+from models.swing_table import SwingTable
 from models.swing_pk_table import SwingPKTable
 
 from initialize import init_db
@@ -98,40 +99,46 @@ def update_de_identification_table(table_id):
 
 
 # swing mapping table
-@app.route("/v1/swing_mapping_table", methods=["POST"])
-def post_swing_mapping_table():
+@app.route("/v1/swing_table", methods=["POST"])
+def post_swing_table():
     if not request.json:
         abort(400)
-    table = SwingMappingTable(**request.json)
+    table = SwingTable(**request.json)
     try:
-        SwingMappingTable.add(table)
+        SwingTable.add(table)
     except Exception as e:
         return jsonify({"error": str(e)}), 400
     return "", 201
 
 
-@app.route("/v1/swing_mapping_table", methods=["GET"])
-def get_swing_mapping_tables():
-    tables = SwingMappingTable.get_all()
+@app.route("/v1/swing_table", methods=["GET"])
+def get_swing_tables():
+    tables = SwingTable.get_all()
     return jsonify(tables), 200
 
 
-@app.route("/v1/swing_mapping_table/<string:table_id>", methods=["GET"])
-def get_swing_mapping_table(table_id):
-    tables = SwingMappingTable.get_table(table_id)
+@app.route("/v1/swing_table/<string:table_id>", methods=["GET"])
+def get_swing_table(table_id):
+    tables = SwingTable.get_table(table_id)
     return jsonify(tables), 200
 
 
-@app.route("/v1/swing_mapping_table/<string:table_id>", methods=["DELETE"])
-def delete_swing_mapping_table(table_id):
-    SwingMappingTable.delete(table_id)
+@app.route("/v1/swing_table/<string:table_id>", methods=["DELETE"])
+def delete_swing_table(table_id):
+    SwingTable.delete(table_id)
     return "", 202
 
 
-@app.route("/v1/swing_mapping_table/<string:table_id>", methods=["PATCH"])
-def update_swing_mapping_table(table_id):
-    r = SwingMappingTable.update(table_id, request.json)
+@app.route("/v1/swing_table/<string:table_id>", methods=["PATCH"])
+def update_swing_table(table_id):
+    r = SwingTable.update(table_id, request.json)
     return jsonify(r), 204
+
+
+@app.route("/v1/swing_rowkey/<string:table_id>", methods=["GET"])
+def get_swing_rowkey(table_id):
+    r = SwingTable.get_rowkey(table_id=table_id)
+    return jsonify(r), 200
 
 
 # swing pk table
@@ -155,7 +162,7 @@ def get_swing_pk_tables():
 
 @app.route("/v1/swing_pk/<string:table_id>", methods=["GET"])
 def get_swing_pk_table(table_id):
-    tables = SwingPKTable.get_table(table_id)
+    tables = SwingPKTable.get_pk_table(table_id)
     return jsonify(tables), 200
 
 
