@@ -428,7 +428,10 @@ def pandas_to_bq(pd_df, destination, partition=None, clustering_fields=None, ove
         bq.load_table_from_dataframe(
             dataframe=pd_df,
             destination=destination,
-            job_config=LoadJobConfig(create_disposition="CREATE_IF_NEEDED", write_disposition="WRITE_TRUNCATE"),
+            job_config=LoadJobConfig(
+                create_disposition="CREATE_IF_NEEDED",
+                write_disposition="WRITE_TRUNCATE" if overwrite else "WRITE_APPEND",
+            ),
         ).result()
     bq.close()
 
