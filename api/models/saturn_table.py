@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 
 from sqlalchemy import Column
 from sqlalchemy import String
