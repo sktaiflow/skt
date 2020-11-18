@@ -11,6 +11,7 @@ class SwingTable(Base):
     table_id = Column(String(1024), primary_key=True)
     column_position = Column(Integer, primary_key=True)
     rowkey_position = Column(Integer)
+    column_type = Column(String(128))
     column_name = Column(String(1024))
     comments = Column(String(4096))
 
