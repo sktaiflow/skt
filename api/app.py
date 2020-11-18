@@ -7,7 +7,6 @@ from flask_cors import CORS
 
 from models.saturn_table import SaturnTable
 from models.de_identification_table import DeIdentificationTable
-from models.swing_mapping_table import SwingMappingTable
 from models.swing_table import SwingTable
 from models.swing_pk_table import SwingPKTable
 
