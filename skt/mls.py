@@ -103,6 +103,13 @@ def get_mls_ml_model_client(env="stg", user="reco"):
     return MLModelClient(**config)
 
 
+def get_mls_automl_batch_prediction_client(env="stg", user="reco"):
+    from sktmls.models.automl.automl_prediction import AutoMLBatchPredictionClient
+
+    config = get_mls_config(env, user)
+    return AutoMLBatchPredictionClient(**config)
+
+
 def get_mls_model_registry(env="stg", user="reco"):
     from sktmls import ModelRegistry
 
