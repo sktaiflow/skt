@@ -13,8 +13,8 @@ headers = {
 }
 
 
-DATA_CATALOG_SECRETS_NAME = "data_catalog"
-DATA_LINEAGE_SECRETS_NAME = "data_lineage"
+DATA_CATALOG_SECRETS_NAME = "data_catalog/client"
+DATA_LINEAGE_SECRETS_NAME = "data_catalog/lineage"
 
 
 def get_lineage(table):
