@@ -2,7 +2,7 @@ import requests
 from skt.vault_utils import get_secrets
 
 
-DATA_LINEAGE_SECRETS_NAME = "data_lineage"
+DATA_LINEAGE_SECRETS_NAME = "data_catalog/lineage"
 
 
 def get_lineage(table):
