@@ -10,8 +10,8 @@ def load_long_description():
 # Start dependencies group
 air = [
     "bayesian-optimization==1.1.0",
-    "catboost<1.0.0",
-    "plotnine<1.0.0",
+    "catboost==0.24.3",
+    "plotnine==0.7.1",
     "shap==0.35.0",
     "gensim==3.8.1",
     "torch==1.4.0",
@@ -28,11 +28,13 @@ air = [
     "pytorch-widedeep==0.3.7",
     "RL-for-reco==1.0.26",
     "LightGBMwithBayesOpt==1.0.2",
+    "tensorboardX==2.1",
+    "torchsummary==1.5.1",
 ]
 
 setuptools.setup(
     name="skt",
-    version="0.2.46",
+    version="0.2.47",
     author="SKT",
     author_email="all@sktai.io",
     description="SKT package",
