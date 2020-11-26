@@ -30,6 +30,7 @@ air = [
     "LightGBMwithBayesOpt==1.0.2",
     "tensorboardX==2.1",
     "torchsummary==1.5.1",
+    "pycaret==2.2.0"
 ]
 
 setuptools.setup(
