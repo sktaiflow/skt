@@ -155,10 +155,7 @@ def hive_to_pandas(query, scale=0):
     c = conn.cursor()
     c.execute("set parquet.column.index.access=false")
     c.execute(ctas)
-    hdfs = get_hdfs_conn()
-    table_path = hdfs.ls(f"/warehouse/tablespace/managed/hive/dumbo.db/{tmp_id}")[0]
-    hdfs.close()
-    df = parquet_to_pandas(table_path)
+    df = parquet_to_pandas(f"/warehouse/tablespace/managed/hive/dumbo.db/{tmp_id}")
     c.execute(f"DROP TABLE dumbo.{tmp_id}")
     c.close()
     conn.close()
@@ -166,9 +163,18 @@ def hive_to_pandas(query, scale=0):
 
 
 def parquet_to_pandas(hdfs_path):
+    import os
+    from pyarrow import fs
     from pyarrow import parquet
+    from skt.ye import get_hdfs_conn
 
-    hdfs = get_hdfs_conn()
+    # Load hadoop environment
+    get_hdfs_conn().close()
+
+    os.environ["ARROW_LIBHDFS_DIR"] = "/usr/hdp/3.0.1.0-187/usr/lib"
+    hdfs = fs.HadoopFileSystem("ye.sktai.io", 8020, user="airflow")
+    if hdfs_path.startswith("hdfs://yellowelephant/"):
+        hdfs_path = hdfs_path[21:]
     df = parquet.read_table(hdfs_path, filesystem=hdfs).to_pandas()
     df.info()
     return df
