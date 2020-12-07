@@ -76,8 +76,8 @@ class SaturnTable(Base):
     def expected_partitions(self, until_kst, before_days):
         end_dt = (until_kst - timedelta(hours=self.sla_hours)).date()
         dts = [end_dt - timedelta(days=x) for x in range(0, before_days)]
-        filtered_dts = [dt for dt in dts if self.apply_filter(dt)]
-        return [dt.strftime("%Y%m%d") for dt in filtered_dts]
+        # filtered_dts = [dt for dt in dts if self.apply_filter(dt)]
+        return [dt.strftime("%Y%m%d") for dt in dts]
 
     def today_expected_partitions(self):
         import pytz
