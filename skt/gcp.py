@@ -6,6 +6,7 @@ from google.cloud.exceptions import NotFound
 
 PROJECT_ID = "sktaic-datahub"
 TEMP_DATASET = "temp_1d"
+CREDENTIALS_SECRET_PATH = "gcp/sktaic-datahub/dataflow"
 
 
 def get_credentials():
@@ -19,6 +20,18 @@ def get_credentials():
     scoped_credentials = credentials.with_scopes(["https://www.googleapis.com/auth/cloud-platform"])
 
     return scoped_credentials
+
+
+def set_default_credentials():
+    import os
+    from skt.vault_utils import get_secrets
+    import uuid
+
+    key_json = get_secrets(CREDENTIALS_SECRET_PATH)["config"]
+    key_json_path = f"/tmp/{str(uuid.uuid4()).replace('-', '_')}"
+    with open(key_json_path, "w") as f:
+        f.write(key_json)
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = key_json_path
 
 
 def get_bigquery_storage_client(credentials=None):
