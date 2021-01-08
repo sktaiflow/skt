@@ -14,7 +14,7 @@ def get_credentials():
     from google.oauth2 import service_account
     from skt.vault_utils import get_secrets
 
-    key = get_secrets("gcp/sktaic-datahub/dataflow")["config"]
+    key = get_secrets(CREDENTIALS_SECRET_PATH)["config"]
     json_acct_info = json.loads(key)
     credentials = service_account.Credentials.from_service_account_info(json_acct_info)
     scoped_credentials = credentials.with_scopes(["https://www.googleapis.com/auth/cloud-platform"])
@@ -229,7 +229,7 @@ def set_gcp_credentials():
     import tempfile
     from skt.vault_utils import get_secrets
 
-    key = get_secrets("gcp/sktaic-datahub/dataflow")["config"]
+    key = get_secrets(CREDENTIALS_SECRET_PATH)["config"]
     key_file_name = tempfile.mkstemp()[1]
     with open(key_file_name, "wb") as key_file:
         key_file.write(key.encode())
@@ -301,7 +301,7 @@ def _bq_table_to_df(dataset, table_name, col_list, partition=None, where=None, s
     if not spark_session:
         spark_session = get_spark()
     spark_session.conf.set("spark.sql.execution.arrow.enabled", "false")
-    key = get_secrets("gcp/sktaic-datahub/dataflow")["config"]
+    key = get_secrets(CREDENTIALS_SECRET_PATH)["config"]
     df = (
         spark_session.read.format("bigquery")
         .option("project", "sktaic-datahub")
@@ -354,7 +354,7 @@ def _df_to_bq_table(
     import base64
     from skt.vault_utils import get_secrets
 
-    key = get_secrets("gcp/sktaic-datahub/dataflow")["config"]
+    key = get_secrets(CREDENTIALS_SECRET_PATH)["config"]
     table = f"{dataset}.{table_name}${partition}" if partition else f"{dataset}.{table_name}"
     df = (
         df.write.format("bigquery")
