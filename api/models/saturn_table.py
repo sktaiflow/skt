@@ -25,6 +25,7 @@ class SaturnTable(Base):
     target_systems = Column(String(256))
     dataset_id = Column(String(1024))
     source_location = Column(String(1024))
+    requestor = Column(String(1024), nullable=False)
     bq_backfill_dts = Column(String(10000))
 
     def __repr__(self):
