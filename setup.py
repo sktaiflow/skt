@@ -35,7 +35,7 @@ air = [
 
 setuptools.setup(
     name="skt",
-    version="0.2.51",
+    version="0.2.52",
     author="SKT",
     author_email="all@sktai.io",
     description="SKT package",
@@ -70,6 +70,9 @@ setuptools.setup(
         "tqdm>=4.48.2",
         "ipywidgets",
         "hmsclient-hive-3",
+        "google-cloud-core==1.5.0",
+        "google-cloud-bigtable==1.6.1",
+        "google-cloud-monitoring==2.0.0",
     ],
     entry_points={"console_scripts": ["nes = skt.nes:nes_cli"]},
     extras_require={"air": air},
